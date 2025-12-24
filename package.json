@@ -1,0 +1,45 @@
+{
+  "name": "web-hosting",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "adm-zip": "^0.5.16",
+    "autoprefixer": "^10.4.23",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
+    "firebase": "^12.7.0",
+    "firebase-admin": "^13.6.0",
+    "lucide-react": "^0.562.0",
+    "mime": "^4.1.0",
+    "mongoose": "^9.0.2",
+    "next": "^16.1.1",
+    "pg": "^8.16.3",
+    "postcss": "^8.5.6",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-dropzone": "^14.3.8",
+    "tailwind-merge": "^3.4.0",
+    "uuid": "^13.0.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/adm-zip": "^0.5.7",
+    "@types/mime": "^3.0.4",
+    "@types/node": "^20",
+    "@types/pg": "^8.16.0",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/uuid": "^10.0.0",
+    "babel-plugin-react-compiler": "1.0.0",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.1",
+    "tailwindcss": "^4.1.18",
+    "typescript": "^5"
+  }
+}
