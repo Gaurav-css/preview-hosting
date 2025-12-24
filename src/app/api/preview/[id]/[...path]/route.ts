@@ -2,8 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Project from '@/models/Project';
-import fs from 'fs';
-import path from 'path';
+import { adminStorage } from '@/lib/firebase-admin';
 import mime from 'mime';
 
 export async function GET(
@@ -25,30 +24,38 @@ export async function GET(
             return new NextResponse('Project Expired', { status: 410 });
         }
 
-        // Security: Prevent accessing files outside storage path
+        const bucket = adminStorage.bucket();
         const sanitizedPath = pathArray.join('/');
-        if (sanitizedPath.includes('..')) {
-            return new NextResponse('Invalid path', { status: 400 });
-        }
+        let filePath = `${project.storage_path}/${sanitizedPath}`;
 
-        const filePath = path.join(project.storage_path, sanitizedPath);
+        console.log(`Preview API: Fetching ${filePath}`);
 
-        if (!fs.existsSync(filePath)) {
+        const file = bucket.file(filePath);
+        let [exists] = await file.exists();
+
+        if (!exists) {
             // Try adding .html if missing
-            if (fs.existsSync(filePath + '.html')) {
-                return serveFile(filePath + '.html');
+            filePath = `${project.storage_path}/${sanitizedPath}.html`;
+            const fileWithExt = bucket.file(filePath);
+            [exists] = await fileWithExt.exists();
+
+            if (exists) {
+                return serveFile(fileWithExt);
             }
+
+            // Try index.html if it's a "directory" (implied)
+            filePath = `${project.storage_path}/${sanitizedPath}/index.html`;
+            const indexFile = bucket.file(filePath);
+            [exists] = await indexFile.exists();
+
+            if (exists) {
+                return serveFile(indexFile);
+            }
+
             return new NextResponse('File not found', { status: 404 });
         }
 
-        if (fs.statSync(filePath).isDirectory()) {
-            if (fs.existsSync(path.join(filePath, 'index.html'))) {
-                return serveFile(path.join(filePath, 'index.html'));
-            }
-            return new NextResponse('Directory listing forbidden', { status: 403 });
-        }
-
-        return serveFile(filePath);
+        return serveFile(file);
 
     } catch (error) {
         console.error("Preview error:", error);
@@ -56,14 +63,20 @@ export async function GET(
     }
 }
 
-function serveFile(filePath: string) {
-    const fileBuffer = fs.readFileSync(filePath);
-    const mimeType = mime.getType(filePath) || 'application/octet-stream';
+async function serveFile(file: any) {
+    try {
+        const [metadata] = await file.getMetadata();
+        const mimeType = metadata.contentType || mime.getType(file.name) || 'application/octet-stream';
+        const fileBuffer = await file.download();
 
-    return new NextResponse(fileBuffer, {
-        headers: {
-            'Content-Type': mimeType,
-            'Cache-Control': 'public, max-age=3600'
-        }
-    });
+        return new NextResponse(fileBuffer[0], {
+            headers: {
+                'Content-Type': mimeType,
+                'Cache-Control': 'public, max-age=3600'
+            }
+        });
+    } catch (err) {
+        console.error("Error serving file:", err);
+        return new NextResponse('Error reading file', { status: 500 });
+    }
 }

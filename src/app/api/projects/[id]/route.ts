@@ -1,10 +1,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { adminAuth } from '@/lib/firebase-admin';
+import { adminAuth, adminStorage } from '@/lib/firebase-admin';
 import dbConnect from '@/lib/db';
 import Project from '@/models/Project';
 import User from '@/models/User';
-import fs from 'fs';
 
 export async function DELETE(
     req: NextRequest,
@@ -35,14 +34,17 @@ export async function DELETE(
             return NextResponse.json({ error: 'Project not found or access denied' }, { status: 404 });
         }
 
-        // Delete files
+        // Delete files from Firebase Storage
         try {
-            if (fs.existsSync(project.storage_path)) {
-                fs.rmSync(project.storage_path, { recursive: true, force: true });
-            }
+            const bucket = adminStorage.bucket();
+            // Delete all files with the prefix
+            await bucket.deleteFiles({
+                prefix: project.storage_path
+            });
+            console.log(`Deleted files in prefix: ${project.storage_path}`);
         } catch (err) {
             console.error(`Failed to delete storage for project ${project.id}:`, err);
-            // Continue to delete record even if file deletion fails (or maybe it was already deleted)
+            // Continue to delete record even if file deletion fails
         }
 
         // Delete Database Record
