@@ -1,9 +1,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { adminAuth, adminStorage } from '@/lib/firebase-admin';
+import { adminAuth } from '@/lib/firebase-admin';
 import dbConnect from '@/lib/db';
 import Project from '@/models/Project';
 import User from '@/models/User';
+import { supabase, SUPABASE_BUCKET_NAME } from '@/lib/supabase';
 
 export async function DELETE(
     req: NextRequest,
@@ -34,17 +35,33 @@ export async function DELETE(
             return NextResponse.json({ error: 'Project not found or access denied' }, { status: 404 });
         }
 
-        // Delete files from Firebase Storage
+        // Delete files from Supabase
         try {
-            const bucket = adminStorage.bucket();
-            // Delete all files with the prefix
-            await bucket.deleteFiles({
-                prefix: project.storage_path
-            });
-            console.log(`Deleted files in prefix: ${project.storage_path}`);
+            // 1. List files in the folder (Supabase list might be paginated, check limit?)
+            const { data: list, error: listError } = await supabase.storage
+                .from(SUPABASE_BUCKET_NAME)
+                .list(project.storage_path);
+
+            if (listError) {
+                console.error("Error listing files for deletion:", listError);
+            } else if (list && list.length > 0) {
+                // 2. Delete files
+                const filesToDelete = list.map(f => `${project.storage_path}/${f.name}`);
+                const { error: deleteError } = await supabase.storage
+                    .from(SUPABASE_BUCKET_NAME)
+                    .remove(filesToDelete);
+
+                if (deleteError) {
+                    console.error("Error deleting files:", deleteError);
+                } else {
+                    console.log(`Deleted ${filesToDelete.length} files from Supabase`);
+                }
+            } else {
+                // Sometimes list returns empty for folder itself if we don't handle deep folders
+                // Supabase storage folders are virtual. We might need recursive delete if it has subfolders.
+            }
         } catch (err) {
             console.error(`Failed to delete storage for project ${project.id}:`, err);
-            // Continue to delete record even if file deletion fails
         }
 
         // Delete Database Record

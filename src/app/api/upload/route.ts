@@ -1,11 +1,13 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { adminAuth, adminStorage } from '@/lib/firebase-admin';
+import { adminAuth } from '@/lib/firebase-admin';
 import dbConnect from '@/lib/db';
 import Project from '@/models/Project';
 import User from '@/models/User';
 import AdmZip from 'adm-zip';
 import { randomBytes } from 'crypto';
+import { supabase, SUPABASE_BUCKET_NAME } from '@/lib/supabase';
+import mime from 'mime';
 
 export async function POST(req: NextRequest) {
     console.log("Upload API: Request received");
@@ -58,26 +60,33 @@ export async function POST(req: NextRequest) {
 
         // Generate unique project ID
         const previewUrl = randomBytes(4).toString('hex'); // 8 chars
-        const bucket = adminStorage.bucket();
         const projectPath = `projects/${previewUrl}`;
 
-        console.log("Upload API: Uploading to Firebase Storage path:", projectPath);
+        console.log(`Upload API: Uploading to Supabase Bucket: ${SUPABASE_BUCKET_NAME}, Path: ${projectPath}`);
 
-        // Upload files to Firebase Storage
+        // Upload files to Supabase Storage
         const uploadPromises = zipEntries
             .filter(entry => !entry.isDirectory)
             .map(async (entry) => {
                 const filePath = `${projectPath}/${entry.entryName}`;
-                const file = bucket.file(filePath);
-                await file.save(entry.getData(), {
-                    metadata: {
-                        contentType: 'auto', // Auto-detect content type
-                    },
-                });
+                const fileData = entry.getData();
+                const contentType = mime.getType(entry.entryName) || 'application/octet-stream';
+
+                const { error } = await supabase.storage
+                    .from(SUPABASE_BUCKET_NAME)
+                    .upload(filePath, fileData, {
+                        contentType: contentType,
+                        upsert: true
+                    });
+
+                if (error) {
+                    console.error(`Error uploading ${entry.entryName}:`, error);
+                    throw new Error(`Failed to upload ${entry.entryName}`);
+                }
             });
 
         await Promise.all(uploadPromises);
-        console.log("Upload API: All files uploaded to Firebase Storage");
+        console.log("Upload API: All files uploaded to Supabase");
 
 
         // Determine Entry Point
@@ -109,7 +118,6 @@ export async function POST(req: NextRequest) {
         }
         console.log("Upload API: Entry point detected:", entryPoint);
 
-
         // Create Project Record
         const expiresAt = new Date();
         expiresAt.setHours(expiresAt.getHours() + 24);
@@ -118,7 +126,7 @@ export async function POST(req: NextRequest) {
             user_id: user._id,
             project_name: file.name.replace('.zip', ''),
             preview_url: previewUrl,
-            storage_path: projectPath, // Now storing Cloud Storage path
+            storage_path: projectPath, // Storing Supabase Path Prefix
             entry_point: entryPoint,
             expires_at: expiresAt,
             status: 'active'

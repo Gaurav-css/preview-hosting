@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Project from '@/models/Project';
-import { adminStorage } from '@/lib/firebase-admin';
+import { supabase, SUPABASE_BUCKET_NAME } from '@/lib/supabase';
 import mime from 'mime';
 
 export async function GET(
@@ -24,38 +24,33 @@ export async function GET(
             return new NextResponse('Project Expired', { status: 410 });
         }
 
-        const bucket = adminStorage.bucket();
         const sanitizedPath = pathArray.join('/');
         let filePath = `${project.storage_path}/${sanitizedPath}`;
 
-        console.log(`Preview API: Fetching ${filePath}`);
+        console.log(`Preview API: Fetching ${filePath} from Supabase`);
 
-        const file = bucket.file(filePath);
-        let [exists] = await file.exists();
+        // Check availability logic
+        let finalKey = filePath;
+        let found = await checkExists(finalKey);
 
-        if (!exists) {
-            // Try adding .html if missing
-            filePath = `${project.storage_path}/${sanitizedPath}.html`;
-            const fileWithExt = bucket.file(filePath);
-            [exists] = await fileWithExt.exists();
-
-            if (exists) {
-                return serveFile(fileWithExt);
+        if (!found) {
+            // Try .html
+            if (await checkExists(filePath + '.html')) {
+                finalKey = filePath + '.html';
+                found = true;
             }
-
-            // Try index.html if it's a "directory" (implied)
-            filePath = `${project.storage_path}/${sanitizedPath}/index.html`;
-            const indexFile = bucket.file(filePath);
-            [exists] = await indexFile.exists();
-
-            if (exists) {
-                return serveFile(indexFile);
+            // Try index.html
+            else if (await checkExists(filePath + '/index.html')) {
+                finalKey = filePath + '/index.html';
+                found = true;
             }
+        }
 
+        if (!found) {
             return new NextResponse('File not found', { status: 404 });
         }
 
-        return serveFile(file);
+        return await serveFile(finalKey);
 
     } catch (error) {
         console.error("Preview error:", error);
@@ -63,13 +58,34 @@ export async function GET(
     }
 }
 
-async function serveFile(file: any) {
+async function checkExists(key: string): Promise<boolean> {
     try {
-        const [metadata] = await file.getMetadata();
-        const mimeType = metadata.contentType || mime.getType(file.name) || 'application/octet-stream';
-        const fileBuffer = await file.download();
+        // Just try to download a small chunk to check existence
+        const { data, error } = await supabase.storage
+            .from(SUPABASE_BUCKET_NAME)
+            .download(key);
 
-        return new NextResponse(fileBuffer[0], {
+        return !error;
+    } catch {
+        return false;
+    }
+}
+
+async function serveFile(key: string) {
+    try {
+        const { data, error } = await supabase.storage
+            .from(SUPABASE_BUCKET_NAME)
+            .download(key);
+
+        if (error || !data) {
+            console.error("Supabase download error:", error);
+            return new NextResponse('Empty file or Not Found', { status: 404 });
+        }
+
+        const buffer = Buffer.from(await data.arrayBuffer());
+        const mimeType = mime.getType(key) || 'application/octet-stream';
+
+        return new NextResponse(buffer, {
             headers: {
                 'Content-Type': mimeType,
                 'Cache-Control': 'public, max-age=3600'
