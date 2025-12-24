@@ -6,6 +6,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { AlertCircle, Clock, Zap } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { BrowserWindow } from '@/components/BrowserWindow';
 
 export default async function PreviewPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
@@ -49,33 +50,33 @@ export default async function PreviewPage({ params }: { params: Promise<{ id: st
     }
 
     return (
-        <div className="h-screen flex flex-col overflow-hidden bg-gray-900">
-            {/* Header Bar */}
-            <header className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 z-10 shrink-0">
-                <div className="flex items-center space-x-4">
-                    <Link href="/" className="flex items-center space-x-2">
-                        <div className="bg-blue-600 p-1 rounded">
-                            <Zap className="w-3 h-3 text-white" />
-                        </div>
-                        <span className="font-bold text-gray-900 text-sm">PreviewHost</span>
-                    </Link>
-                    <div className="h-4 w-px bg-gray-200"></div>
-                    <h1 className="font-medium text-gray-700 text-sm truncate max-w-[200px]">{project.project_name}</h1>
-                </div>
-                <div className="flex items-center text-xs font-medium text-gray-500">
-                    <Clock className="w-3 h-3 mr-1.5" />
+        <div className="h-screen flex flex-col overflow-hidden bg-gray-100 p-4 sm:p-6 md:p-8">
+            <header className="flex items-center justify-between mb-6 px-2">
+                <Link href="/" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
+                    <div className="bg-blue-600 p-1.5 rounded-lg shadow-sm">
+                        <Zap className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="font-bold text-gray-900 text-lg tracking-tight">PreviewHost</span>
+                </Link>
+
+                <div className="flex items-center bg-white px-3 py-1.5 rounded-full shadow-sm border border-gray-200 text-xs font-medium text-gray-500">
+                    <Clock className="w-3.5 h-3.5 mr-1.5 text-orange-500" />
                     Expires {formatDistanceToNow(new Date(project.expires_at), { addSuffix: true })}
                 </div>
             </header>
 
-            {/* Sandbox Iframe */}
-            <div className="flex-1 relative">
-                <iframe
-                    src={`/api/preview/${id}/${project.entry_point || 'index.html'}`}
-                    className="w-full h-full border-0 bg-white"
-                    sandbox="allow-scripts allow-forms allow-same-origin allow-popups allow-modals"
-                    title="User Preview"
-                />
+            <div className="flex-1 min-h-0 relative">
+                <BrowserWindow
+                    url={`https://preview-hosting.vercel.app/p/${id}`}
+                    className="h-full w-full shadow-2xl"
+                >
+                    <iframe
+                        src={`/api/preview/${id}/${project.entry_point || 'index.html'}`}
+                        className="w-full h-full border-0 bg-white"
+                        sandbox="allow-scripts allow-forms allow-same-origin allow-popups allow-modals"
+                        title="User Preview"
+                    />
+                </BrowserWindow>
             </div>
         </div>
     );

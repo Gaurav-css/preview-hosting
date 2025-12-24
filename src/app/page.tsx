@@ -2,6 +2,7 @@
 
 import React, { useEffect } from 'react';
 import { Navbar } from '@/components/Navbar';
+import { BrowserWindow } from '@/components/BrowserWindow';
 import { Zap, Shield, Clock, ArrowRight, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
@@ -31,6 +32,40 @@ export default function LandingPage() {
       router.push('/upload');
     }
   }, [user, router]);
+
+  const [latestProject, setLatestProject] = React.useState<any>(null);
+
+  useEffect(() => {
+    if (!user) {
+      setLatestProject(null);
+      return;
+    }
+
+    async function fetchLatestProject() {
+      if (!user) return;
+      try {
+        const token = await user!.getIdToken();
+        const res = await fetch('/api/projects', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          // Assuming API returns projects sorted by creation date, or we sort them here
+          if (data.projects && data.projects.length > 0) {
+            // Sor by created_at desc just in case
+            const sorted = data.projects.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+            setLatestProject(sorted[0]);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch projects", error);
+      }
+    }
+
+    fetchLatestProject();
+  }, [user]);
 
   return (
     <div className="min-h-screen bg-white">
@@ -78,28 +113,34 @@ export default function LandingPage() {
             </div>
 
             {/* Mockup / Preview Area */}
-            <div className="mt-20 relative max-w-5xl mx-auto">
-              <div className="rounded-3xl border border-gray-200 bg-white shadow-2xl overflow-hidden aspect-[16/9] flex flex-col">
-                <div className="bg-gray-50 border-b border-gray-200 px-4 py-3 flex items-center space-x-2">
-                  <div className="flex space-x-1.5">
-                    <div className="w-3 h-3 rounded-full bg-red-400" />
-                    <div className="w-3 h-3 rounded-full bg-yellow-400" />
-                    <div className="w-3 h-3 rounded-full bg-green-400" />
-                  </div>
-                  <div className="flex-1 max-w-md mx-auto h-6 bg-white rounded-md border border-gray-200 flex items-center px-3">
-                    <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                      <div className="w-3/4 h-full bg-blue-500 rounded-full" />
+            <div className="mt-10 relative max-w-[95%] mx-auto px-2 sm:px-4">
+              <div className="relative">
+                {/* Decorative background blur behind the window */}
+                <div className="absolute inset-0 bg-blue-100 blur-3xl opacity-20 transform scale-110" />
+
+                <BrowserWindow
+                  className="relative z-10 h-[80vh] transition-all duration-500 shadow-2xl"
+                  url={latestProject ? `https://preview-hosting.vercel.app/p/${latestProject.preview_url}` : "https://preview-hosting.vercel.app/demo-project"}
+                >
+                  {latestProject ? (
+                    <iframe
+                      src={`/api/preview/${latestProject.preview_url}/${latestProject.entry_point || 'index.html'}`}
+                      className="w-full h-full border-0 bg-white"
+                      sandbox="allow-scripts allow-forms allow-same-origin allow-popups allow-modals"
+                      title="Latest Project Preview"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-gray-50/50 p-8">
+                      <div className="text-center">
+                        <div className="w-20 h-20 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm">
+                          <Zap className="w-10 h-10 text-blue-600" />
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">Ready to Deploy?</h3>
+                        <p className="text-gray-500 font-medium">Drag & drop your project zip file to see it live here.</p>
+                      </div>
                     </div>
-                  </div>
-                </div>
-                <div className="flex-1 flex items-center justify-center bg-gray-50/50">
-                  <div className="text-center">
-                    <div className="w-20 h-20 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                      <Zap className="w-10 h-10 text-blue-600" />
-                    </div>
-                    <p className="text-gray-500 font-medium">Your preview appears here instantly</p>
-                  </div>
-                </div>
+                  )}
+                </BrowserWindow>
               </div>
             </div>
           </div>
