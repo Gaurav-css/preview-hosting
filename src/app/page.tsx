@@ -4,7 +4,7 @@ import React, { useEffect } from 'react';
 import { Navbar } from '@/components/Navbar';
 import { BrowserWindow } from '@/components/BrowserWindow';
 import { Zap, Shield, Clock, ArrowRight, Loader2 } from 'lucide-react';
-import Link from 'next/link';
+
 import { useAuth } from '@/lib/auth-context';
 import { useRouter } from 'next/navigation';
 
@@ -120,7 +120,7 @@ export default function LandingPage() {
 
                 <BrowserWindow
                   className="relative z-10 h-[80vh] transition-all duration-500 shadow-2xl"
-                  url={latestProject ? `https://preview-hosting.vercel.app/p/${latestProject.preview_url}` : "https://preview-hosting.vercel.app/demo-project"}
+                  url={latestProject ? `/p/${latestProject.preview_url}` : "/demo-project"}
                   fullscreenUrl={latestProject ? `/api/preview/${latestProject.preview_url}/${latestProject.entry_point || 'index.html'}` : undefined}
                 >
                   {latestProject ? (
@@ -157,7 +157,7 @@ export default function LandingPage() {
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-4">Secure & Isolated</h3>
                 <p className="text-gray-600">
-                  Previews are served in a secure sandbox, ensuring they can't access your data or compromise other users.
+                  Previews are served in a secure sandbox, ensuring they can&apos;t access your data or compromise other users.
                 </p>
               </div>
               <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">

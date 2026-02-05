@@ -1,5 +1,6 @@
+"use client";
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Lock, RotateCw, ChevronLeft, ChevronRight, ExternalLink, Maximize2 } from 'lucide-react';
 
 interface BrowserWindowProps {
@@ -10,6 +11,14 @@ interface BrowserWindowProps {
 }
 
 export function BrowserWindow({ url = "https://preview-hosting.vercel.app", fullscreenUrl, children, className = "" }: BrowserWindowProps) {
+    const [origin, setOrigin] = useState("");
+
+    useEffect(() => {
+        setOrigin(window.location.origin);
+    }, []);
+
+    const displayUrl = url.startsWith('/') && origin ? `${origin}${url}` : url;
+
     return (
         <div className={`flex flex-col rounded-xl overflow-hidden shadow-2xl border border-gray-200 bg-white ${className}`}>
             {/* Browser Toolbar */}
@@ -32,7 +41,7 @@ export function BrowserWindow({ url = "https://preview-hosting.vercel.app", full
                 <div className="flex-1 max-w-2xl mx-auto">
                     <div className="bg-white border border-gray-200 rounded-md py-1 px-3 text-sm text-gray-600 flex items-center shadow-sm group">
                         <Lock className="w-3 h-3 text-gray-400 mr-2" />
-                        <span className="truncate flex-1 font-mono text-xs">{url}</span>
+                        <span className="truncate flex-1 font-mono text-xs">{displayUrl}</span>
                         {fullscreenUrl && (
                             <a
                                 href={fullscreenUrl}

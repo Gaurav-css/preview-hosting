@@ -5,7 +5,7 @@ import { useAuth } from '@/lib/auth-context';
 import { useRouter } from 'next/navigation';
 import { Navbar } from '@/components/Navbar';
 import Link from 'next/link';
-import { Plus, Clock, ExternalLink, Trash2, Loader2, AlertCircle } from 'lucide-react';
+import { Plus, Clock, ExternalLink, Trash2, Loader2, AlertCircle, Copy, Check } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 
@@ -42,9 +42,9 @@ export default function Dashboard() {
                         Authorization: `Bearer ${token}`,
                     },
                 });
-                
+
                 const data = await res.json();
-                
+
                 if (res.ok) {
                     setProjects(data.projects);
                 } else {
@@ -67,6 +67,7 @@ export default function Dashboard() {
     // Tracking deletion state locally
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [justDeletedIds, setJustDeletedIds] = useState<string[]>([]);
+    const [copiedId, setCopiedId] = useState<string | null>(null);
 
     const handleDelete = async (id: string) => {
         // 1. Show "Thank you" state immediately
@@ -127,7 +128,7 @@ export default function Dashboard() {
                         <AlertCircle className="w-10 h-10 text-red-500 mx-auto mb-4" />
                         <h3 className="text-lg font-semibold text-red-900 mb-2">Error Loading Dashboard</h3>
                         <p className="text-red-700 mb-4">{error}</p>
-                        <button 
+                        <button
                             onClick={() => window.location.reload()}
                             className="bg-red-100 hover:bg-red-200 text-red-800 font-medium py-2 px-4 rounded-lg transition-colors"
                         >
@@ -167,7 +168,7 @@ export default function Dashboard() {
                         </div>
                         <h3 className="text-xl font-medium text-gray-900 mb-2">No active previews</h3>
                         <p className="text-gray-500 mb-8 max-w-sm mx-auto">
-                            You haven't uploaded any projects yet. Upload a zip file or folder to get started.
+                            You haven&apos;t uploaded any projects yet. Upload a zip file or folder to get started.
                         </p>
                         <Link
                             href="/upload"
@@ -234,15 +235,29 @@ export default function Dashboard() {
 
                                         <div className="flex items-center space-x-3">
                                             {project.status === 'active' ? (
-                                                <a
-                                                    href={`/p/${project.preview_url}`}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors"
-                                                >
-                                                    <ExternalLink className="w-4 h-4 mr-2" />
-                                                    View Live
-                                                </a>
+                                                <>
+                                                    <a
+                                                        href={`/p/${project.preview_url}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+                                                    >
+                                                        <ExternalLink className="w-4 h-4 mr-2" />
+                                                        View Live
+                                                    </a>
+                                                    <button
+                                                        onClick={() => {
+                                                            const url = `${window.location.origin}/p/${project.preview_url}`;
+                                                            navigator.clipboard.writeText(url);
+                                                            setCopiedId(project._id);
+                                                            setTimeout(() => setCopiedId(null), 2000);
+                                                        }}
+                                                        className={`p-2 transition-colors border border-gray-200 rounded-lg ${copiedId === project._id ? 'bg-green-50 text-green-600 border-green-200' : 'text-gray-400 hover:text-blue-600 hover:bg-gray-50'}`}
+                                                        title="Copy Link"
+                                                    >
+                                                        {copiedId === project._id ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                                                    </button>
+                                                </>
                                             ) : (
                                                 <button
                                                     disabled

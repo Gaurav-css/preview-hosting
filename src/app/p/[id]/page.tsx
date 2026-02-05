@@ -4,7 +4,7 @@ import dbConnect from '@/lib/db';
 import Project from '@/models/Project';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { AlertCircle, Clock, Zap } from 'lucide-react';
+import { Clock, Zap } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { BrowserWindow } from '@/components/BrowserWindow';
 
@@ -67,7 +67,7 @@ export default async function PreviewPage({ params }: { params: Promise<{ id: st
 
             <div className="flex-1 min-h-0 relative">
                 <BrowserWindow
-                    url={`https://preview-hosting.vercel.app/p/${id}`}
+                    url={`/p/${id}`}
                     fullscreenUrl={`/api/preview/${id}/${project.entry_point || 'index.html'}`}
                     className="h-full w-full shadow-2xl"
                 >
