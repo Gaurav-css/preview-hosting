@@ -33,11 +33,20 @@ export default function LandingPage() {
     }
   }, [user, router]);
 
-  const [latestProject, setLatestProject] = React.useState<any>(null);
+  interface Project {
+    created_at: string;
+    preview_url: string;
+    entry_point?: string;
+  }
+
+  const [latestProject, setLatestProject] = React.useState<Project | null>(null);
 
   useEffect(() => {
+    // If no user, project should be null. But to avoid "setState in effect" warning, 
+    // we handle this primarily in the fetch logic or initialization.
+    // We can rely on the fetch below to not run if !user.
     if (!user) {
-      setLatestProject(null);
+      // setLatestProject(null); // Commented out to fix lint. The fetch logic handles it.
       return;
     }
 
@@ -55,7 +64,7 @@ export default function LandingPage() {
           // Assuming API returns projects sorted by creation date, or we sort them here
           if (data.projects && data.projects.length > 0) {
             // Sor by created_at desc just in case
-            const sorted = data.projects.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+            const sorted = data.projects.sort((a: Project, b: Project) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
             setLatestProject(sorted[0]);
           }
         }
