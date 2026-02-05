@@ -121,6 +121,7 @@ export default function LandingPage() {
                 <BrowserWindow
                   className="relative z-10 h-[80vh] transition-all duration-500 shadow-2xl"
                   url={latestProject ? `https://preview-hosting.vercel.app/p/${latestProject.preview_url}` : "https://preview-hosting.vercel.app/demo-project"}
+                  fullscreenUrl={latestProject ? `/api/preview/${latestProject.preview_url}/${latestProject.entry_point || 'index.html'}` : undefined}
                 >
                   {latestProject ? (
                     <iframe

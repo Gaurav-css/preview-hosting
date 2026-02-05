@@ -68,6 +68,7 @@ export default async function PreviewPage({ params }: { params: Promise<{ id: st
             <div className="flex-1 min-h-0 relative">
                 <BrowserWindow
                     url={`https://preview-hosting.vercel.app/p/${id}`}
+                    fullscreenUrl={`/api/preview/${id}/${project.entry_point || 'index.html'}`}
                     className="h-full w-full shadow-2xl"
                 >
                     <iframe

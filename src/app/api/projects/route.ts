@@ -26,8 +26,17 @@ export async function GET(req: NextRequest) {
         const projects = await Project.find({ user_id: user._id }).sort({ created_at: -1 });
 
         return NextResponse.json({ projects });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error fetching projects:", error);
+        
+        // Check for specific connectivity errors
+        if (error.name === 'MongooseServerSelectionError' || error.message?.includes('ECONNREFUSED')) {
+            return NextResponse.json({ 
+                error: 'Database Connection Failed', 
+                details: 'Could not connect to MongoDB. Please check your network connection and firewall settings.' 
+            }, { status: 503 });
+        }
+
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }

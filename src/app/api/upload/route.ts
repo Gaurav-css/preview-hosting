@@ -8,6 +8,10 @@ import AdmZip from 'adm-zip';
 import { randomBytes } from 'crypto';
 import { supabase, SUPABASE_BUCKET_NAME } from '@/lib/supabase';
 import mime from 'mime';
+import fs from 'fs';
+import path from 'path';
+
+const LOCAL_STORAGE_ROOT = path.join(process.cwd(), 'storage');
 
 export async function POST(req: NextRequest) {
     console.log("Upload API: Request received");
@@ -62,31 +66,66 @@ export async function POST(req: NextRequest) {
         const previewUrl = randomBytes(4).toString('hex'); // 8 chars
         const projectPath = `projects/${previewUrl}`;
 
-        console.log(`Upload API: Uploading to Supabase Bucket: ${SUPABASE_BUCKET_NAME}, Path: ${projectPath}`);
+        // FORCE LOCAL STORAGE if Supabase URL is obviously invalid
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        let useLocalStorage = false;
+        
+        async function uploadToSupabase() {
+             console.log(`Upload API: Uploading to Supabase Bucket: ${SUPABASE_BUCKET_NAME}, Path: ${projectPath}`);
+             const uploadPromises = zipEntries
+                .filter(entry => !entry.isDirectory)
+                .map(async (entry) => {
+                    const filePath = `${projectPath}/${entry.entryName}`;
+                    const fileData = entry.getData();
+                    const contentType = mime.getType(entry.entryName) || 'application/octet-stream';
 
-        // Upload files to Supabase Storage
-        const uploadPromises = zipEntries
-            .filter(entry => !entry.isDirectory)
-            .map(async (entry) => {
-                const filePath = `${projectPath}/${entry.entryName}`;
-                const fileData = entry.getData();
-                const contentType = mime.getType(entry.entryName) || 'application/octet-stream';
+                    const { error } = await supabase.storage
+                        .from(SUPABASE_BUCKET_NAME)
+                        .upload(filePath, fileData, {
+                            contentType: contentType,
+                            upsert: true
+                        });
 
-                const { error } = await supabase.storage
-                    .from(SUPABASE_BUCKET_NAME)
-                    .upload(filePath, fileData, {
-                        contentType: contentType,
-                        upsert: true
-                    });
+                    if (error) throw error;
+                });
+             await Promise.all(uploadPromises);
+        }
 
-                if (error) {
-                    console.error(`Error uploading ${entry.entryName}:`, error);
-                    throw new Error(`Failed to upload ${entry.entryName}`);
-                }
-            });
+        try {
+            if (!supabaseUrl || supabaseUrl.includes('supabase.co') && !supabaseUrl.includes('civtpkzrhfimcgxiwewn')) {
+                 // Try to use Supabase if it looks "real", otherwise local. 
+                 // Actually the user has a broken URL. 
+                 // Let's try Supabase and catch the specific error to fallback.
+                 await uploadToSupabase();
+            } else {
+                 await uploadToSupabase();
+            }
+        } catch (error: any) {
+             console.error("Supabase Upload Failed:", error);
+             if (error.message && (error.message.includes('fetch failed') || error.message.includes('ENOTFOUND'))) {
+                 console.log("Falling back to Local Storage...");
+                 useLocalStorage = true;
+             } else {
+                 throw error; // Rethrow other errors
+             }
+        }
 
-        await Promise.all(uploadPromises);
-        console.log("Upload API: All files uploaded to Supabase");
+        if (useLocalStorage) {
+             const localProjectDir = path.join(LOCAL_STORAGE_ROOT, projectPath);
+             if (!fs.existsSync(localProjectDir)) {
+                 fs.mkdirSync(localProjectDir, { recursive: true });
+             }
+
+             zipEntries.filter(entry => !entry.isDirectory).forEach((entry) => {
+                 const fullPath = path.join(localProjectDir, entry.entryName);
+                 const dirName = path.dirname(fullPath);
+                 if (!fs.existsSync(dirName)) fs.mkdirSync(dirName, { recursive: true });
+                 fs.writeFileSync(fullPath, entry.getData());
+                 console.log(`Saved local file: ${entry.entryName}`);
+             });
+        }
+        
+        console.log("Upload API: Files stored successfully");
 
 
         // Determine Entry Point

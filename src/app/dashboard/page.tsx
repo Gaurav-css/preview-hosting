@@ -23,6 +23,7 @@ export default function Dashboard() {
     const router = useRouter();
     const [projects, setProjects] = useState<Project[]>([]);
     const [fetching, setFetching] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (!loading && !user) {
@@ -33,6 +34,7 @@ export default function Dashboard() {
     useEffect(() => {
         async function fetchProjects() {
             if (!user) return;
+            setError(null);
             try {
                 const token = await user.getIdToken();
                 const res = await fetch('/api/projects', {
@@ -40,12 +42,17 @@ export default function Dashboard() {
                         Authorization: `Bearer ${token}`,
                     },
                 });
+                
+                const data = await res.json();
+                
                 if (res.ok) {
-                    const data = await res.json();
                     setProjects(data.projects);
+                } else {
+                    setError(data.details || data.error || "Failed to load projects");
                 }
             } catch (error) {
                 console.error("Failed to fetch projects", error);
+                setError("Network error. Please try again.");
             } finally {
                 setFetching(false);
             }
@@ -106,6 +113,27 @@ export default function Dashboard() {
                 <Navbar />
                 <div className="flex-1 flex items-center justify-center">
                     <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+                </div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex flex-col">
+                <Navbar />
+                <div className="flex-1 flex flex-col items-center justify-center p-4">
+                    <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center max-w-md">
+                        <AlertCircle className="w-10 h-10 text-red-500 mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold text-red-900 mb-2">Error Loading Dashboard</h3>
+                        <p className="text-red-700 mb-4">{error}</p>
+                        <button 
+                            onClick={() => window.location.reload()}
+                            className="bg-red-100 hover:bg-red-200 text-red-800 font-medium py-2 px-4 rounded-lg transition-colors"
+                        >
+                            Retry
+                        </button>
+                    </div>
                 </div>
             </div>
         );

@@ -1,14 +1,15 @@
 
 import React from 'react';
-import { Lock, RotateCw, ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
+import { Lock, RotateCw, ChevronLeft, ChevronRight, ExternalLink, Maximize2 } from 'lucide-react';
 
 interface BrowserWindowProps {
     url?: string;
+    fullscreenUrl?: string;
     children: React.ReactNode;
     className?: string;
 }
 
-export function BrowserWindow({ url = "https://preview-hosting.vercel.app", children, className = "" }: BrowserWindowProps) {
+export function BrowserWindow({ url = "https://preview-hosting.vercel.app", fullscreenUrl, children, className = "" }: BrowserWindowProps) {
     return (
         <div className={`flex flex-col rounded-xl overflow-hidden shadow-2xl border border-gray-200 bg-white ${className}`}>
             {/* Browser Toolbar */}
@@ -32,13 +33,13 @@ export function BrowserWindow({ url = "https://preview-hosting.vercel.app", chil
                     <div className="bg-white border border-gray-200 rounded-md py-1 px-3 text-sm text-gray-600 flex items-center shadow-sm group">
                         <Lock className="w-3 h-3 text-gray-400 mr-2" />
                         <span className="truncate flex-1 font-mono text-xs">{url}</span>
-                        {url && (
+                        {fullscreenUrl && (
                             <a
-                                href={url}
+                                href={fullscreenUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="ml-2 text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"
-                                title="Open in new tab"
+                                title="Open fullscreen"
                             >
                                 <ExternalLink className="w-3 h-3" />
                             </a>
@@ -46,17 +47,18 @@ export function BrowserWindow({ url = "https://preview-hosting.vercel.app", chil
                     </div>
                 </div>
 
-                {/* Actions */}
-                <div className="w-16 flex justify-end">
-                    {url && (
+                {/* Actions - Fullscreen Button */}
+                <div className="flex items-center space-x-1">
+                    {fullscreenUrl && (
                         <a
-                            href={url}
+                            href={fullscreenUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors rounded-md hover:bg-gray-200/50"
-                            title="Open in new tab"
+                            className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors rounded-md hover:bg-gray-200/50 flex items-center space-x-1"
+                            title="View fullscreen"
                         >
-                            <ExternalLink className="w-4 h-4" />
+                            <Maximize2 className="w-4 h-4" />
+                            <span className="text-xs font-medium hidden sm:inline">Fullscreen</span>
                         </a>
                     )}
                 </div>

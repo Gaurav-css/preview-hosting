@@ -4,6 +4,10 @@ import dbConnect from '@/lib/db';
 import Project from '@/models/Project';
 import { supabase, SUPABASE_BUCKET_NAME } from '@/lib/supabase';
 import mime from 'mime';
+import fs from 'fs';
+import path from 'path';
+
+const LOCAL_STORAGE_ROOT = path.join(process.cwd(), 'storage');
 
 export async function GET(
     req: NextRequest,
@@ -27,30 +31,74 @@ export async function GET(
         const sanitizedPath = pathArray.join('/');
         let filePath = `${project.storage_path}/${sanitizedPath}`;
 
-        console.log(`Preview API: Fetching ${filePath} from Supabase`);
+        console.log(`Preview API: Request for ${filePath}`);
 
-        // Check availability logic
+        // 1. Try Local Storage Check
+        // Normalize slashes for Windows compatibility
+        const normalizedFilePath = filePath.split('/').join(path.sep);
+        
+        async function smartCheck(key: string): Promise<{ exists: boolean; local: boolean }> {
+             // Ensure key matches OS separators
+             const normalizedKey = key.split('/').join(path.sep);
+             const localKeyPath = path.join(LOCAL_STORAGE_ROOT, normalizedKey);
+             
+             console.log(`Checking local path: ${localKeyPath}`);
+             
+             try {
+                 if (fs.existsSync(localKeyPath) && fs.statSync(localKeyPath).isFile()) {
+                     console.log("-> Found locally!");
+                     return { exists: true, local: true };
+                 }
+             } catch (e) {
+                 console.error("Local check error:", e);
+             }
+             
+             console.log("-> Not found locally, checking Supabase...");
+             return { exists: await checkSupabase(key), local: false };
+        }
+
         let finalKey = filePath;
-        let found = await checkExists(finalKey);
+        let check = await smartCheck(finalKey);
 
-        if (!found) {
+        if (!check.exists) {
+            console.log("Direct check failed, trying fallback extensions...");
             // Try .html
-            if (await checkExists(filePath + '.html')) {
+            const checkHtml = await smartCheck(filePath + '.html');
+            if (checkHtml.exists) {
                 finalKey = filePath + '.html';
-                found = true;
-            }
-            // Try index.html
-            else if (await checkExists(filePath + '/index.html')) {
-                finalKey = filePath + '/index.html';
-                found = true;
+                check = checkHtml;
+            } else {
+                // Try index.html
+                const checkIndex = await smartCheck(filePath + '/index.html');
+                if (checkIndex.exists) {
+                     finalKey = filePath + '/index.html';
+                     check = checkIndex;
+                }
             }
         }
 
-        if (!found) {
+        if (!check.exists) {
             return new NextResponse('File not found', { status: 404 });
         }
 
-        return await serveFile(finalKey);
+        if (check.local) {
+             console.log("Serving from Local Storage:", finalKey);
+             // Re-normalize for the final read
+             const normalizedFinalKey = finalKey.split('/').join(path.sep);
+             const fullLocalPath = path.join(LOCAL_STORAGE_ROOT, normalizedFinalKey);
+             
+             const fileBuffer = fs.readFileSync(fullLocalPath);
+             const mimeType = mime.getType(finalKey) || 'application/octet-stream';
+             return new NextResponse(fileBuffer, {
+                headers: {
+                    'Content-Type': mimeType,
+                    'Cache-Control': 'public, max-age=3600'
+                }
+            });
+        } else {
+             console.log("Serving from Supabase:", finalKey);
+             return await serveSupabaseFile(finalKey);
+        }
 
     } catch (error) {
         console.error("Preview error:", error);
@@ -58,20 +106,18 @@ export async function GET(
     }
 }
 
-async function checkExists(key: string): Promise<boolean> {
+async function checkSupabase(key: string): Promise<boolean> {
     try {
-        // Just try to download a small chunk to check existence
         const { data, error } = await supabase.storage
             .from(SUPABASE_BUCKET_NAME)
             .download(key);
-
         return !error;
     } catch {
         return false;
     }
 }
 
-async function serveFile(key: string) {
+async function serveSupabaseFile(key: string) {
     try {
         const { data, error } = await supabase.storage
             .from(SUPABASE_BUCKET_NAME)

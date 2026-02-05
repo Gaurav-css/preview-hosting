@@ -1,5 +1,24 @@
 
 import mongoose from 'mongoose';
+import dns from 'dns';
+
+// Fix for ECONNREFUSED on some networks/Windows setups
+// Forces usage of Google/Cloudflare DNS for SRV lookups (required for mongodb+srv)
+try {
+    dns.setServers(['8.8.8.8', '1.1.1.1']);
+} catch (e) {
+    console.warn("Failed to set custom DNS servers:", e);
+}
+
+// Workaround for some Node.js versions / Networks preferring IPv6
+// which can cause connection issues with MongoDB Atlas SRV records
+try {
+    if (dns.setDefaultResultOrder) {
+        dns.setDefaultResultOrder('ipv4first');
+    }
+} catch (e) {
+    // Ignore if not supported in this environment
+}
 
 const MONGODB_URI = process.env.MONGODB_URI;
 
@@ -27,6 +46,19 @@ let cached = global.mongoose;
 
 if (!cached) {
     cached = global.mongoose = { conn: null, promise: null };
+}
+
+// FORCE DNS UPDATE (Moved inside dbConnect for lazy execution but before connection)
+// This ensures it runs when the function is actually called, which might help in some Next.js environments.
+try {
+    const servers = dns.getServers();
+    // Only update if not already set to Google (prevent constant resetting if not needed)
+    if (!servers.includes('8.8.8.8')) {
+           dns.setServers(['8.8.8.8', '1.1.1.1']);
+           console.log("Updated DNS servers to use Google/Cloudflare for MongoDB Atlas"); 
+    }
+} catch (e) {
+    console.error("Failed to update DNS servers:", e);
 }
 
 async function dbConnect() {
