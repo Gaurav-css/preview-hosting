@@ -72,10 +72,18 @@ export async function POST(req: NextRequest) {
 
         async function uploadToSupabase() {
             console.log(`Upload API: Uploading to Supabase Bucket: ${SUPABASE_BUCKET_NAME}, Path: ${projectPath}`);
+
             const uploadPromises = zipEntries
                 .filter(entry => !entry.isDirectory)
                 .map(async (entry) => {
-                    const filePath = `${projectPath}/${entry.entryName}`;
+                    // Security: Prevent ZipSlip by ensuring path is safe
+                    const entryName = entry.entryName;
+                    if (entryName.includes('..') || path.isAbsolute(entryName)) {
+                        console.warn(`Upload API: Skipped unsafe path in Supabase upload: ${entryName}`);
+                        return { path: null, error: 'Unsafe path' };
+                    }
+
+                    const filePath = `${projectPath}/${entryName}`;
                     const fileData = entry.getData();
                     const contentType = mime.getType(entry.entryName) || 'application/octet-stream';
 
@@ -87,8 +95,44 @@ export async function POST(req: NextRequest) {
                         });
 
                     if (error) throw error;
+                    return { path: filePath, error: null };
                 });
-            await Promise.all(uploadPromises);
+
+            const results = await Promise.allSettled(uploadPromises);
+
+            const successfulUploads: string[] = [];
+            const failedUploads: PromiseSettledResult<{ path: string | null; error: string | null }>[] = [];
+
+            results.forEach((result) => {
+                if (result.status === 'fulfilled') {
+                    if (result.value.path) {
+                        successfulUploads.push(result.value.path);
+                    }
+                    if (result.value.error) {
+                        failedUploads.push(result);
+                    }
+                } else {
+                    failedUploads.push(result);
+                }
+            });
+
+            if (failedUploads.length > 0) {
+                console.error(`Upload API: ${failedUploads.length} files failed to upload. Rolling back ${successfulUploads.length} successful uploads...`);
+
+                // Rollback: Delete successful uploads
+                if (successfulUploads.length > 0) {
+                    const { error: deleteError } = await supabase.storage
+                        .from(SUPABASE_BUCKET_NAME)
+                        .remove(successfulUploads);
+
+                    if (deleteError) {
+                        console.error("Upload API: CRITICAL - Failed to rollback partial uploads:", deleteError);
+                    } else {
+                        console.log("Upload API: Rollback successful.");
+                    }
+                }
+                throw new Error("Partial upload failure - triggered rollback");
+            }
         }
 
         try {
@@ -98,7 +142,7 @@ export async function POST(req: NextRequest) {
                 console.log("Upload API: Supabase URL not configured or invalid. Falling back to Local Storage.");
                 useLocalStorage = true;
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error("Supabase Upload Failed:", error);
             console.log("Falling back to Local Storage due to upload error...");
             useLocalStorage = true;
@@ -120,7 +164,15 @@ export async function POST(req: NextRequest) {
             }
 
             zipEntries.filter(entry => !entry.isDirectory).forEach((entry) => {
-                const fullPath = path.join(localProjectDir, entry.entryName);
+                // Security: Prevent ZipSlip
+                const entryName = entry.entryName;
+                const resolvedPath = path.resolve(localProjectDir, entryName);
+                if (!resolvedPath.startsWith(path.resolve(localProjectDir) + path.sep)) {
+                    console.warn(`Upload API: Skipped unsafe path in local upload: ${entryName}`);
+                    return;
+                }
+
+                const fullPath = resolvedPath;
                 const dirName = path.dirname(fullPath);
                 if (!fs.existsSync(dirName)) fs.mkdirSync(dirName, { recursive: true });
                 fs.writeFileSync(fullPath, entry.getData());
@@ -177,8 +229,9 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({ project, status: 'success' });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Upload error:", error);
-        return NextResponse.json({ error: error.message || 'Server Error' }, { status: 500 });
+        const errorMessage = error instanceof Error ? error.message : 'Server Error';
+        return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
 }

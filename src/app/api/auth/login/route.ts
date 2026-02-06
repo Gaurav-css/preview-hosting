@@ -45,12 +45,10 @@ export async function POST(req: NextRequest) {
         }
 
         return NextResponse.json({ user, status: 'success' });
-    } catch (error: any) {
-        console.error('CRITICAL ERROR in auth API:', error);
+    } catch (error: unknown) {
+        console.error('Login API Error:', error); // Log for server-side debugging
         return NextResponse.json({
-            error: 'Internal Server Error',
-            details: error.message,
-            stack: error.stack
+            error: 'Internal Server Error'
         }, { status: 500 });
     }
 }

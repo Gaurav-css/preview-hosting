@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Project from '@/models/Project';
 import fs from 'fs';
+import { deleteFolderRecursively } from '@/lib/supabase';
 
 export async function GET() {
     try {
@@ -19,9 +20,14 @@ export async function GET() {
         for (const project of expiredProjects) {
             // Delete files
             try {
+                // Delete from Local Storage
                 if (fs.existsSync(project.storage_path)) {
                     fs.rmSync(project.storage_path, { recursive: true, force: true });
                 }
+
+                // Delete from Supabase
+                await deleteFolderRecursively(project.storage_path);
+
             } catch (err) {
                 console.error(`Failed to delete storage for project ${project.id}:`, err);
             }

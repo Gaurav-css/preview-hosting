@@ -15,6 +15,8 @@ const envPath = path.resolve(__dirname, '..', '.env.local');
 if (fs.existsSync(envPath)) {
     const envConfig = fs.readFileSync(envPath, 'utf8');
     envConfig.split('\n').forEach(line => {
+        const trimmedLine = line.trim();
+        if (!trimmedLine || trimmedLine.startsWith('#')) return;
         const match = line.match(/^([^=]+)=(.*)$/);
         if (match) {
             const key = match[1].trim();

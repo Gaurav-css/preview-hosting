@@ -4,7 +4,11 @@ import { adminAuth } from '@/lib/firebase-admin';
 import dbConnect from '@/lib/db';
 import Project from '@/models/Project';
 import User from '@/models/User';
-import { supabase, SUPABASE_BUCKET_NAME } from '@/lib/supabase';
+import { deleteFolderRecursively } from '@/lib/supabase';
+import fs from 'fs';
+import path from 'path';
+
+const LOCAL_STORAGE_ROOT = path.join(process.cwd(), 'storage');
 
 export async function DELETE(
     req: NextRequest,
@@ -36,32 +40,17 @@ export async function DELETE(
         }
 
         // Delete files from Supabase
+        await deleteFolderRecursively(project.storage_path);
+
+        // Delete from Local Storage (if enabled/fallback used)
         try {
-            // 1. List files in the folder (Supabase list might be paginated, check limit?)
-            const { data: list, error: listError } = await supabase.storage
-                .from(SUPABASE_BUCKET_NAME)
-                .list(project.storage_path);
-
-            if (listError) {
-                console.error("Error listing files for deletion:", listError);
-            } else if (list && list.length > 0) {
-                // 2. Delete files
-                const filesToDelete = list.map(f => `${project.storage_path}/${f.name}`);
-                const { error: deleteError } = await supabase.storage
-                    .from(SUPABASE_BUCKET_NAME)
-                    .remove(filesToDelete);
-
-                if (deleteError) {
-                    console.error("Error deleting files:", deleteError);
-                } else {
-                    console.log(`Deleted ${filesToDelete.length} files from Supabase`);
-                }
-            } else {
-                // Sometimes list returns empty for folder itself if we don't handle deep folders
-                // Supabase storage folders are virtual. We might need recursive delete if it has subfolders.
+            const localProjectPath = path.join(LOCAL_STORAGE_ROOT, project.storage_path);
+            if (fs.existsSync(localProjectPath)) {
+                fs.rmSync(localProjectPath, { recursive: true, force: true });
+                console.log(`Deleted local files for project: ${id}`);
             }
-        } catch (err) {
-            console.error(`Failed to delete storage for project ${project.id}:`, err);
+        } catch (error) {
+            console.error(`Failed to delete local storage for project ${id}:`, error);
         }
 
         // Delete Database Record
@@ -69,7 +58,7 @@ export async function DELETE(
 
         return NextResponse.json({ success: true, message: 'Project deleted' });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Delete project error:", error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
