@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sorry Purple 💜</title>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: #c8a8e9;
+            font-family: 'Poppins', sans-serif;
+            overflow-x: hidden;
+        }
+
+        .hearts-bg {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 0;
+        }
+
+        .floating-heart {
+            position: absolute;
+            font-size: 20px;
+            opacity: 0.5;
+        }
+
+        .sparkle {
+            position: absolute;
+            font-size: 12px;
+            opacity: 0.5;
+        }
+
+        @keyframes sparkle {
+            0%, 100% {
+                opacity: 0.3;
+                transform: scale(0.8);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1.2);
+            }
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .sorry-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 30px;
+            padding: 50px 40px;
+            max-width: 550px;
+            box-shadow: 0 15px 50px rgba(128, 90, 170, 0.25);
+            animation: fadeInUp 1s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .emoji-icon {
+            font-size: 80px;
+        }
+
+        h1 {
+            font-family: 'Dancing Script', cursive;
+            color: #7b4b9e;
+            font-size: 2.8em;
+            margin: 20px 0;
+        }
+
+        h2 {
+            font-family: 'Dancing Script', cursive;
+            color: #8b5fbf;
+            font-size: 2em;
+            margin: 15px 0;
+        }
+
+        .message {
+            color: #555;
+            font-size: 1.2em;
+            line-height: 1.8;
+            margin: 20px 0;
+            font-weight: 300;
+        }
+
+        .highlight {
+            color: #9b4dca;
+            font-weight: 600;
+        }
+
+        .love-box {
+            background: rgba(200, 168, 233, 0.3);
+            border-left: 4px solid #9b4dca;
+            padding: 25px;
+            margin: 25px 0;
+            border-radius: 0 20px 20px 0;
+            text-align: center;
+        }
+
+        .love-box p {
+            color: #555;
+            font-size: 1.1em;
+            line-height: 1.7;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 15px 40px;
+            font-size: 1.1em;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 500;
+        }
+
+        .btn-next {
+            background: linear-gradient(135deg, #9b4dca, #7b3fa0);
+            color: white;
+            box-shadow: 0 5px 20px rgba(155, 77, 202, 0.4);
+        }
+
+        .btn-next:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 8px 30px rgba(155, 77, 202, 0.5);
+        }
+
+        .btn-secondary {
+            background: rgba(155, 77, 202, 0.15);
+            color: #7b4b9e;
+            border: 2px solid rgba(155, 77, 202, 0.3);
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-3px);
+            background: rgba(155, 77, 202, 0.25);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .page-transition {
+            animation: pageIn 0.6s ease-out;
+        }
+
+        @keyframes pageIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.9) translateY(30px);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .bounce-icon {
+            font-size: 100px;
+        }
+
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            animation: confetti-fall 3s linear forwards;
+        }
+
+        @keyframes confetti-fall {
+            0% {
+                transform: translateY(-100px) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+
+        .glow-text {
+        }
+
+        .emoji-row {
+            font-size: 2.5em;
+            margin: 20px 0;
+        }
+
+        .final-message {
+            background: rgba(200, 168, 233, 0.3);
+            padding: 30px;
+            border-radius: 20px;
+            margin: 20px 0;
+        }
+
+        .heart-beat {
+            display: inline-block;
+        }
+
+        .page-dots {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(199, 125, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .dot.active {
+            background: #c77dff;
+            box-shadow: 0 0 15px rgba(199, 125, 255, 0.8);
+            transform: scale(1.2);
+        }
+
+        .btn-angry {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a5a);
+            color: white;
+            box-shadow: 0 5px 25px rgba(255, 107, 107, 0.4);
+            border: 2px solid rgba(255, 150, 150, 0.5);
+            transition: all 0.3s ease;
+        }
+
+        .btn-angry:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(255, 107, 107, 0.6);
+        }
+
+        .btn-angry.running {
+            position: fixed;
+            z-index: 1000;
+            transition: all 0.2s ease;
+        }
+
+        /* Mobile Responsive */
+        @media screen and (max-width: 768px) {
+            .sorry-card {
+                padding: 30px 20px;
+                margin: 10px;
+                max-width: 95%;
+                border-radius: 20px;
+            }
+
+            h1 {
+                font-size: 1.8em;
+            }
+
+            h2 {
+                font-size: 1.5em;
+            }
+
+            .emoji-icon {
+                font-size: 60px;
+            }
+
+            .bounce-icon {
+                font-size: 70px;
+            }
+
+            .message {
+                font-size: 1em;
+                line-height: 1.6;
+            }
+
+            .emoji-row {
+                font-size: 1.8em;
+                margin: 15px 0;
+            }
+
+            .love-box {
+                padding: 15px;
+                margin: 15px 0;
+            }
+
+            .love-box p {
+                font-size: 1em;
+            }
+
+            .final-message {
+                padding: 20px 15px;
+            }
+
+            .buttons {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .btn {
+                padding: 12px 30px;
+                font-size: 1em;
+                width: 100%;
+            }
+
+            .page-dots {
+                margin-top: 20px;
+            }
+
+            .dot {
+                width: 10px;
+                height: 10px;
+            }
+        }
+
+        @media screen and (max-width: 480px) {
+            .sorry-card {
+                padding: 25px 15px;
+            }
+
+            h1 {
+                font-size: 1.5em;
+            }
+
+            h2 {
+                font-size: 1.3em;
+            }
+
+            .emoji-icon {
+                font-size: 50px;
+            }
+
+            .bounce-icon {
+                font-size: 60px;
+            }
+
+            .message {
+                font-size: 0.95em;
+            }
+
+            .emoji-row {
+                font-size: 1.5em;
+            }
+
+            .final-message div[style*="font-size: 3em"] {
+                font-size: 2em !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="hearts-bg" id="heartsBackground"></div>
+
+    <div class="container">
+        <!-- Page 1: Sorry Note -->
+        <div class="sorry-card page-transition" id="page1">
+            <div class="emoji-icon">🥺</div>
+            <h1 class="glow-text">SORRY NOTE FOR MY SWEETHEART</h1>
+            
+            <p class="message">
+                This is a special message from the bottom of my heart... 
+                <span class="highlight">Please read it with love 💜</span>
+            </p>
+
+            <div class="buttons">
+                <button class="btn btn-next" onclick="showPage(2)">
+                    Open My Heart 💜
+                </button>
+            </div>
+
+            <div class="page-dots">
+                <div class="dot active"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+            </div>
+        </div>
+
+        <!-- Page 2: Sorry Purple -->
+        <div class="sorry-card page-transition hidden" id="page2">
+            <div class="emoji-icon">😔</div>
+            <h1 class="glow-text">SORRY PURPLE 💜</h1>
+            
+            <div class="love-box">
+                <p style="font-size: 1.3em;">
+                    I didn't mean to hurt you but I mistakenly did 😔
+                </p>
+                <p>
+                    My heart aches knowing I caused you pain...<br>
+                    <span class="highlight">You deserve only happiness</span>
+                </p>
+            </div>
+
+            <div class="buttons">
+                <button class="btn btn-secondary" onclick="showPage(1)">
+                    ← Back
+                </button>
+                <button class="btn btn-next" onclick="showPage(3)">
+                    Read More 💜
+                </button>
+            </div>
+
+            <div class="page-dots">
+                <div class="dot"></div>
+                <div class="dot active"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+            </div>
+        </div>
+
+        <!-- Page 3: Promise -->
+        <div class="sorry-card page-transition hidden" id="page3">
+            <div class="emoji-icon">🙏</div>
+            <h2 class="glow-text">My Promise To You 💜</h2>
+            
+            <div class="love-box">
+                <p style="font-size: 1.25em; line-height: 2;">
+                    I will change my bad habits<br><br>
+                    And won't give you a chance to complain
+                </p>
+                <p>
+                    I promise to be better every single day...<br>
+                    <span class="highlight">Because you deserve the best version of me 💜</span>
+                </p>
+            </div>
+
+            <div class="buttons">
+                <button class="btn btn-secondary" onclick="showPage(2)">
+                    ← Back
+                </button>
+                <button class="btn btn-next" onclick="showPage(4)">
+                    Final Words 💜
+                </button>
+            </div>
+
+            <div class="page-dots">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot active"></div>
+                <div class="dot"></div>
+            </div>
+        </div>
+
+        <!-- Page 4: Final Love Message -->
+        <div class="sorry-card page-transition hidden" id="page4">
+            <img src="giphy.gif" alt="Love" style="width: 150px; height: auto; border-radius: 15px; margin-bottom: 15px;">
+            <h1 class="glow-text">I LOVE YOU SO MUCH SOFTYYY</h1>
+            
+            <div class="final-message">
+                <p class="message" style="font-size: 1.3em;">
+                    You are my everything... my world... my happiness<br><br>
+                    <span class="highlight">Please forgive me, my love</span>
+                </p>
+                <p class="message">
+                    I can't imagine my life without you...<br>
+                    You make everything beautiful just by being in it<br><br>
+                </p>
+            </div>
+
+            <div class="buttons" id="finalButtons">
+                <button class="btn btn-secondary" onclick="showPage(3)">
+                    ← Back
+                </button>
+                <button class="btn btn-next" id="forgiveBtn" onclick="acceptLove()">
+                    I Forgive You love 💜
+                </button>
+                <button class="btn btn-angry" id="angryBtn" onclick="runAwayButton(this)">
+                    I'm Still Angry 😢
+                </button>
+            </div>
+
+            <div class="page-dots">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot active"></div>
+            </div>
+        </div>
+
+        <!-- Forgiven Page -->
+        <div class="sorry-card page-transition hidden" id="forgivenCard">
+            <div class="bounce-icon">🥰</div>
+            <h1 class="glow-text">Thank You My Love! 💜</h1>
+            <div class="final-message">
+                <p class="message" style="font-size: 1.4em;">
+                    You just made me the <span class="highlight">happiest person</span> in the entire universe! 💜
+                </p>
+                <p class="message">
+                    I promise to love you more and more every single day...<br>
+                    <strong style="color: #ff9cff; font-size: 1.3em;">You Are My Forever 💜</strong>
+                </p>
+                <div style="font-size: 3em; margin: 20px 0;">
+                    💜👫💜
+                </div>
+                <p style="color: #e0b0ff; font-size: 1.2em;">
+                    I Love You To The Moon And Back, Softyyy! 🌙💜
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Create static hearts and sparkles (fixed positions)
+        function createFloatingHearts() {
+            const container = document.getElementById('heartsBackground');
+            const hearts = ['💜', '💕', '🦋', '✨', '💫', '🌸'];
+            
+            // Static hearts scattered around
+            for (let i = 0; i < 12; i++) {
+                const heart = document.createElement('div');
+                heart.className = 'floating-heart';
+                heart.textContent = hearts[Math.floor(Math.random() * hearts.length)];
+                heart.style.left = Math.random() * 100 + '%';
+                heart.style.top = Math.random() * 100 + '%';
+                heart.style.fontSize = (Math.random() * 12 + 14) + 'px';
+                container.appendChild(heart);
+            }
+        }
+
+        // Show specific page
+        function showPage(pageNum) {
+            // Hide all pages
+            for (let i = 1; i <= 4; i++) {
+                document.getElementById('page' + i).classList.add('hidden');
+            }
+            document.getElementById('forgivenCard').classList.add('hidden');
+            
+            // Show selected page
+            const page = document.getElementById('page' + pageNum);
+            page.classList.remove('hidden');
+            page.style.animation = 'none';
+            page.offsetHeight; // Trigger reflow
+            page.style.animation = 'pageIn 0.6s ease-out';
+        }
+
+        // Accept love / forgiveness
+        function acceptLove() {
+            // Hide all pages
+            for (let i = 1; i <= 4; i++) {
+                document.getElementById('page' + i).classList.add('hidden');
+            }
+            
+            // Remove the angry button completely
+            const angryBtn = document.getElementById('angryBtn');
+            if (angryBtn) {
+                angryBtn.remove();
+            }
+            
+            document.getElementById('forgivenCard').classList.remove('hidden');
+            createConfetti();
+            
+            // Change to even more beautiful purple gradient
+            document.body.style.background = 'linear-gradient(135deg, #2d1b4e 0%, #4a2c7a 25%, #8b5fbf 50%, #c9a6e9 75%, #f0d6ff 100%)';
+        }
+
+        // Create confetti celebration
+        function createConfetti() {
+            const colors = ['#9b4dca', '#c77dff', '#e0b0ff', '#ff9cff', '#6b2d8a', '#f0d6ff', '#ffffff'];
+            const shapes = ['💜', '✨', '💕', '🦋', '💫', '⭐'];
+            
+            for (let i = 0; i < 80; i++) {
+                setTimeout(() => {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    confetti.style.left = Math.random() * 100 + '%';
+                    
+                    if (Math.random() > 0.5) {
+                        confetti.textContent = shapes[Math.floor(Math.random() * shapes.length)];
+                        confetti.style.fontSize = (Math.random() * 15 + 10) + 'px';
+                        confetti.style.background = 'transparent';
+                    } else {
+                        confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+                        confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+                        confetti.style.width = (Math.random() * 10 + 5) + 'px';
+                        confetti.style.height = (Math.random() * 10 + 5) + 'px';
+                        confetti.style.boxShadow = '0 0 10px rgba(199, 125, 255, 0.5)';
+                    }
+                    
+                    document.body.appendChild(confetti);
+                    
+                    setTimeout(() => confetti.remove(), 3000);
+                }, i * 40);
+            }
+        }
+
+        // Runaway angry button
+        let angryClickCount = 0;
+        const sadMessages = [
+            "Please don't be angry 😢",
+            "I'm so sorry 😭",
+            "Please forgive me 🥺",
+            "I love you 💜😢",
+            "Don't click me 😭💔",
+            "Pleaseee 🥺💜",
+            "I'll be better 😢",
+            "My heart hurts 💔😭"
+        ];
+
+        function runAwayButton(btn) {
+            angryClickCount++;
+            
+            // Move button to body for proper fixed positioning
+            if (btn.parentElement.id !== 'body') {
+                document.body.appendChild(btn);
+            }
+            
+            // Set fixed position
+            btn.style.position = 'fixed';
+            btn.style.zIndex = '9999';
+            btn.style.width = 'auto';
+            btn.style.minWidth = '180px';
+            
+            // Get button dimensions after it's in the DOM
+            const btnWidth = btn.offsetWidth || 180;
+            const btnHeight = btn.offsetHeight || 50;
+            
+            // Get viewport dimensions with safe margins
+            const maxX = window.innerWidth - btnWidth - 30;
+            const maxY = window.innerHeight - btnHeight - 30;
+            
+            // Random position within visible area
+            const randomX = Math.floor(Math.random() * (maxX - 30)) + 30;
+            const randomY = Math.floor(Math.random() * (maxY - 30)) + 30;
+            
+            btn.style.left = randomX + 'px';
+            btn.style.top = randomY + 'px';
+            
+            // Change button text with sad messages
+            btn.textContent = sadMessages[angryClickCount % sadMessages.length];
+            
+            // After 8 clicks, button gives up and converts to forgive
+            if (angryClickCount >= 8) {
+                setTimeout(() => {
+                    btn.textContent = "Okay... I Forgive You 💜😢";
+                    btn.classList.remove('btn-angry');
+                    btn.classList.add('btn-next');
+                    btn.onclick = function() { acceptLove(); };
+                    btn.style.position = 'fixed';
+                    btn.style.left = '50%';
+                    btn.style.top = '50%';
+                    btn.style.transform = 'translate(-50%, -50%)';
+                    btn.style.animation = 'pulse 1s ease-in-out infinite';
+                }, 300);
+            }
+        }
+
+        // Also make button run on hover (for desktop) and touch (for mobile)
+        document.addEventListener('DOMContentLoaded', function() {
+            const angryBtn = document.getElementById('angryBtn');
+            if (angryBtn) {
+                // Desktop hover
+                angryBtn.addEventListener('mouseenter', function() {
+                    if (angryClickCount < 8 && angryClickCount > 0) {
+                        runAwayButton(this);
+                    }
+                });
+                
+                // Mobile touch - runs away when finger gets close
+                angryBtn.addEventListener('touchstart', function(e) {
+                    if (angryClickCount < 8) {
+                        e.preventDefault(); // Prevent click from firing
+                        runAwayButton(this);
+                    }
+                }, { passive: false });
+                
+                // Also run away when finger moves near button (for mobile)
+                let lastMoveTime = 0;
+                document.addEventListener('touchmove', function(e) {
+                    if (angryClickCount >= 8) return;
+                    
+                    const now = Date.now();
+                    if (now - lastMoveTime < 200) return; // Throttle
+                    lastMoveTime = now;
+                    
+                    const touch = e.touches[0];
+                    const btn = document.getElementById('angryBtn');
+                    if (!btn || btn.classList.contains('btn-next')) return;
+                    
+                    const rect = btn.getBoundingClientRect();
+                    const distance = 80; // Run away if finger within 80px
+                    
+                    if (touch.clientX > rect.left - distance &&
+                        touch.clientX < rect.right + distance &&
+                        touch.clientY > rect.top - distance &&
+                        touch.clientY < rect.bottom + distance) {
+                        runAwayButton(btn);
+                    }
+                }, { passive: true });
+            }
+        });
+
+        // Initialize
+        createFloatingHearts();
+    </script>
+</body>
+</html>

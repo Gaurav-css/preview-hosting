@@ -67,8 +67,10 @@ export async function POST(req: NextRequest) {
         const projectPath = `projects/${previewUrl}`;
 
         // FORCE LOCAL STORAGE if Supabase URL is obviously invalid
+        // FORCE LOCAL STORAGE if Supabase URL is obviously invalid
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
         let useLocalStorage = false;
+        let supabaseErrorDetail: string | null = null;
 
         async function uploadToSupabase() {
             console.log(`Upload API: Uploading to Supabase Bucket: ${SUPABASE_BUCKET_NAME}, Path: ${projectPath}`);
@@ -144,6 +146,7 @@ export async function POST(req: NextRequest) {
             }
         } catch (error: unknown) {
             console.error("Supabase Upload Failed:", error);
+            supabaseErrorDetail = error instanceof Error ? error.message : String(error);
             console.log("Falling back to Local Storage due to upload error...");
             useLocalStorage = true;
         }
@@ -154,7 +157,7 @@ export async function POST(req: NextRequest) {
             if (process.env.VERCEL || process.env.NEXT_PUBLIC_VERCEL_URL) {
                 console.error("Upload API: Aborting. Cannot use Local Storage on Vercel.");
                 return NextResponse.json({
-                    error: 'Storage Configuration Error: Supabase credentials are missing or invalid in Vercel Settings.'
+                    error: `Vercel Storage Error: Supabase upload failed. Details: ${supabaseErrorDetail || 'Check Supabase Credentials or Bucket'}`
                 }, { status: 500 });
             }
 
