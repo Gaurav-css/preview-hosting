@@ -1,4 +1,4 @@
-
+/* eslint-disable */
 const dns = require('dns');
 try {
     dns.setServers(['8.8.8.8', '1.1.1.1']);
@@ -9,8 +9,32 @@ try {
 
 const mongoose = require('mongoose');
 
-// Manually pulling URI for testing since we are in a script
-const uri = "mongodb+srv://gky895522_db_user:RK7i79aHpsaAJoXj@cluster0.ljywxjn.mongodb.net/?appName=Cluster0";
+const fs = require('fs');
+const path = require('path');
+const envPath = path.resolve(__dirname, '..', '.env.local');
+
+// Simple .env parser
+if (fs.existsSync(envPath)) {
+    const envConfig = fs.readFileSync(envPath, 'utf8');
+    envConfig.split('\n').forEach(line => {
+        const match = line.match(/^([^=]+)=(.*)$/);
+        if (match) {
+            const key = match[1].trim();
+            let value = match[2].trim();
+            if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+                value = value.slice(1, -1);
+            }
+            if (!process.env[key]) process.env[key] = value;
+        }
+    });
+}
+
+const uri = process.env.MONGODB_URI;
+
+if (!uri) {
+    console.error("Error: MONGODB_URI not found in environment or .env.local");
+    process.exit(1);
+}
 
 console.log("Attempting Mongoose connection...");
 

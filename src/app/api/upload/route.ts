@@ -69,10 +69,10 @@ export async function POST(req: NextRequest) {
         // FORCE LOCAL STORAGE if Supabase URL is obviously invalid
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
         let useLocalStorage = false;
-        
+
         async function uploadToSupabase() {
-             console.log(`Upload API: Uploading to Supabase Bucket: ${SUPABASE_BUCKET_NAME}, Path: ${projectPath}`);
-             const uploadPromises = zipEntries
+            console.log(`Upload API: Uploading to Supabase Bucket: ${SUPABASE_BUCKET_NAME}, Path: ${projectPath}`);
+            const uploadPromises = zipEntries
                 .filter(entry => !entry.isDirectory)
                 .map(async (entry) => {
                     const filePath = `${projectPath}/${entry.entryName}`;
@@ -88,43 +88,46 @@ export async function POST(req: NextRequest) {
 
                     if (error) throw error;
                 });
-             await Promise.all(uploadPromises);
+            await Promise.all(uploadPromises);
         }
 
         try {
-            if (!supabaseUrl || supabaseUrl.includes('supabase.co') && !supabaseUrl.includes('civtpkzrhfimcgxiwewn')) {
-                 // Try to use Supabase if it looks "real", otherwise local. 
-                 // Actually the user has a broken URL. 
-                 // Let's try Supabase and catch the specific error to fallback.
-                 await uploadToSupabase();
+            if (supabaseUrl && supabaseUrl.includes('supabase.co')) {
+                await uploadToSupabase();
             } else {
-                 await uploadToSupabase();
+                console.log("Upload API: Supabase URL not configured or invalid. Falling back to Local Storage.");
+                useLocalStorage = true;
             }
         } catch (error: any) {
-             console.error("Supabase Upload Failed:", error);
-             if (error.message && (error.message.includes('fetch failed') || error.message.includes('ENOTFOUND'))) {
-                 console.log("Falling back to Local Storage...");
-                 useLocalStorage = true;
-             } else {
-                 throw error; // Rethrow other errors
-             }
+            console.error("Supabase Upload Failed:", error);
+            console.log("Falling back to Local Storage due to upload error...");
+            useLocalStorage = true;
         }
 
         if (useLocalStorage) {
-             const localProjectDir = path.join(LOCAL_STORAGE_ROOT, projectPath);
-             if (!fs.existsSync(localProjectDir)) {
-                 fs.mkdirSync(localProjectDir, { recursive: true });
-             }
+            // CRITICAL: Vercel does not allow writing to the filesystem (except /tmp which is ephemeral)
+            // If we are on Vercel, we MUST fail if Supabase didn't work.
+            if (process.env.VERCEL || process.env.NEXT_PUBLIC_VERCEL_URL) {
+                console.error("Upload API: Aborting. Cannot use Local Storage on Vercel.");
+                return NextResponse.json({
+                    error: 'Storage Configuration Error: Supabase credentials are missing or invalid in Vercel Settings.'
+                }, { status: 500 });
+            }
 
-             zipEntries.filter(entry => !entry.isDirectory).forEach((entry) => {
-                 const fullPath = path.join(localProjectDir, entry.entryName);
-                 const dirName = path.dirname(fullPath);
-                 if (!fs.existsSync(dirName)) fs.mkdirSync(dirName, { recursive: true });
-                 fs.writeFileSync(fullPath, entry.getData());
-                 console.log(`Saved local file: ${entry.entryName}`);
-             });
+            const localProjectDir = path.join(LOCAL_STORAGE_ROOT, projectPath);
+            if (!fs.existsSync(localProjectDir)) {
+                fs.mkdirSync(localProjectDir, { recursive: true });
+            }
+
+            zipEntries.filter(entry => !entry.isDirectory).forEach((entry) => {
+                const fullPath = path.join(localProjectDir, entry.entryName);
+                const dirName = path.dirname(fullPath);
+                if (!fs.existsSync(dirName)) fs.mkdirSync(dirName, { recursive: true });
+                fs.writeFileSync(fullPath, entry.getData());
+                console.log(`Saved local file: ${entry.entryName}`);
+            });
         }
-        
+
         console.log("Upload API: Files stored successfully");
 
 
