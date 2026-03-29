@@ -9,6 +9,7 @@ export interface IProject extends Document {
     expires_at: Date;
     status: 'active' | 'expired';
     created_at: Date;
+    deleted_at: Date | null;
 }
 
 const ProjectSchema = new Schema<IProject>({
@@ -20,6 +21,7 @@ const ProjectSchema = new Schema<IProject>({
     expires_at: { type: Date, required: true },
     status: { type: String, enum: ['active', 'expired'], default: 'active' },
     created_at: { type: Date, default: Date.now },
+    deleted_at: { type: Date, default: null },
 });
 
 export default mongoose.models.Project || mongoose.model<IProject>('Project', ProjectSchema);

@@ -1,18 +1,18 @@
-
 import React from 'react';
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import { formatDistanceToNow } from 'date-fns';
+import { Clock, Sparkles } from 'lucide-react';
+
+import { BrowserWindow } from '@/components/BrowserWindow';
 import dbConnect from '@/lib/db';
 import Project from '@/models/Project';
-import { notFound } from 'next/navigation';
-import Link from 'next/link';
-import { Clock, Zap } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
-import { BrowserWindow } from '@/components/BrowserWindow';
 
 export default async function PreviewPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
 
     await dbConnect();
-    const project = await Project.findOne({ preview_url: id });
+    const project = await Project.findOne({ preview_url: id, deleted_at: null });
 
     if (!project) {
         notFound();
@@ -22,26 +22,25 @@ export default async function PreviewPage({ params }: { params: Promise<{ id: st
 
     if (isExpired) {
         return (
-            <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
-                <div className="bg-white rounded-3xl p-12 max-w-lg w-full text-center shadow-sm border border-gray-200">
-                    <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <Clock className="w-10 h-10 text-red-500" />
+            <div className="min-h-screen bg-[#F5F7FA] px-4 py-10 text-gray-900 sm:px-6 lg:px-8">
+                <div className="mx-auto flex max-w-xl flex-col items-center justify-center pt-20 text-center">
+                    <div className="glass-panel w-full rounded-2xl border border-gray-200 p-10 sm:p-12 shadow-sm bg-white">
+                        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gray-50 border border-gray-200 shadow-sm">
+                            <Clock className="h-8 w-8 text-gray-400" />
+                        </div>
+                        <h1 className="mt-8 text-3xl font-bold tracking-tight text-gray-900">Preview expired</h1>
+                        <p className="mt-4 text-base leading-8 text-gray-600">
+                            This deployment has rotated out. Preview links stay live for 24 hours, then the workspace tears them down automatically.
+                        </p>
+                        <Link
+                            href="/"
+                            className="brand-button mt-8 inline-flex items-center rounded-full px-6 py-3 text-sm font-semibold sm:text-base shadow-md"
+                        >
+                            Create a new preview
+                        </Link>
                     </div>
-                    <h1 className="text-2xl font-bold text-gray-900 mb-2">Preview Expired</h1>
-                    <p className="text-gray-500 mb-8">
-                        This deployment has expired and is no longer available.
-                        Temporary previews are automatically deleted after 24 hours.
-                    </p>
-                    <Link
-                        href="/"
-                        className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-blue-600 hover:bg-blue-700 transition-colors"
-                    >
-                        Create New Preview
-                    </Link>
-                </div>
-                <div className="mt-8">
-                    <Link href="/" className="flex items-center text-gray-400 hover:text-gray-600 transition-colors">
-                        <Zap className="w-4 h-4 mr-2" />
+                    <Link href="/" className="mt-8 inline-flex items-center text-sm font-medium text-gray-500 transition-colors hover:text-gray-900">
+                        <Sparkles className="mr-2 h-4 w-4" />
                         Powered by PreviewHost
                     </Link>
                 </div>
@@ -50,30 +49,33 @@ export default async function PreviewPage({ params }: { params: Promise<{ id: st
     }
 
     return (
-        <div className="h-screen flex flex-col overflow-hidden bg-gray-100 p-4 sm:p-6 md:p-8">
-            <header className="flex items-center justify-between mb-6 px-2">
-                <Link href="/" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
-                    <div className="bg-blue-600 p-1.5 rounded-lg shadow-sm">
-                        <Zap className="w-4 h-4 text-white" />
+        <div className="flex h-screen flex-col overflow-hidden bg-[#F5F7FA] p-4 text-gray-900 sm:p-6 md:p-8">
+            <header className="mb-6 flex items-center justify-between px-2">
+                <Link href="/" className="flex items-center gap-3 transition-opacity hover:opacity-80">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-900 shadow-sm">
+                        <Sparkles className="h-5 w-5 text-white" />
                     </div>
-                    <span className="font-bold text-gray-900 text-lg tracking-tight">PreviewHost</span>
+                    <div>
+                        <p className="text-lg font-semibold tracking-tight text-gray-900">PreviewHost</p>
+                        <p className="text-[11px] uppercase tracking-widest text-gray-500 font-medium">Live preview</p>
+                    </div>
                 </Link>
 
-                <div className="flex items-center bg-white px-3 py-1.5 rounded-full shadow-sm border border-gray-200 text-xs font-medium text-gray-500">
-                    <Clock className="w-3.5 h-3.5 mr-1.5 text-orange-500" />
+                <div className="inline-flex items-center rounded-full border border-gray-200 bg-white px-4 py-2 text-[13px] font-medium text-gray-600 shadow-sm">
+                    <Clock className="mr-2 h-4 w-4 text-gray-400" />
                     Expires {formatDistanceToNow(new Date(project.expires_at), { addSuffix: true })}
                 </div>
             </header>
 
-            <div className="flex-1 min-h-0 relative">
+            <div className="min-h-0 flex-1">
                 <BrowserWindow
                     url={`/p/${id}`}
                     fullscreenUrl={`/api/preview/${id}/${project.entry_point || 'index.html'}`}
-                    className="h-full w-full shadow-2xl"
+                    className="h-full w-full shadow-lg rounded-xl overflow-hidden border border-gray-200 bg-white"
                 >
                     <iframe
                         src={`/api/preview/${id}/${project.entry_point || 'index.html'}`}
-                        className="w-full h-full border-0 bg-white"
+                        className="h-full w-full border-0 bg-white"
                         sandbox="allow-scripts allow-forms allow-same-origin allow-popups allow-modals"
                         title="User Preview"
                     />

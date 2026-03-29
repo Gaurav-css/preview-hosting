@@ -1,28 +1,37 @@
 "use client";
 
 import React, { useEffect } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { Clock, ArrowRight, Loader2, Shield, Sparkles, Upload, Zap } from 'lucide-react';
+
 import { Navbar } from '@/components/Navbar';
 import { BrowserWindow } from '@/components/BrowserWindow';
-import { Zap, Shield, Clock, ArrowRight, Loader2 } from 'lucide-react';
-
 import { useAuth } from '@/lib/auth-context';
-import { useRouter } from 'next/navigation';
+
+interface Project {
+  created_at: string;
+  preview_url: string;
+  entry_point?: string;
+}
 
 export default function LandingPage() {
   const { user, login, loading } = useAuth();
   const router = useRouter();
+  const [latestProject, setLatestProject] = React.useState<Project | null>(null);
 
   const handleStartUploading = async () => {
     if (user) {
       router.push('/upload');
-    } else {
-      // Set a flag to redirect after login
-      window.localStorage.setItem('redirect_to_upload', 'true');
-      try {
-        await login();
-      } catch (error) {
-        console.error("Login trigger failed", error);
-      }
+      return;
+    }
+
+    window.localStorage.setItem('redirect_to_upload', 'true');
+
+    try {
+      await login();
+    } catch (error) {
+      console.error('Login trigger failed', error);
     }
   };
 
@@ -31,160 +40,168 @@ export default function LandingPage() {
       window.localStorage.removeItem('redirect_to_upload');
       router.push('/upload');
     }
-  }, [user, router]);
-
-  interface Project {
-    created_at: string;
-    preview_url: string;
-    entry_point?: string;
-  }
-
-  const [latestProject, setLatestProject] = React.useState<Project | null>(null);
+  }, [router, user]);
 
   useEffect(() => {
-    // If no user, project should be null. But to avoid "setState in effect" warning, 
-    // we handle this primarily in the fetch logic or initialization.
-    // We can rely on the fetch below to not run if !user.
     if (!user) {
-      // setLatestProject(null); // Commented out to fix lint. The fetch logic handles it.
       return;
     }
 
     async function fetchLatestProject() {
-      if (!user) return;
+      const currentUser = user;
+      if (!currentUser) {
+        return;
+      }
+
       try {
-        const token = await user!.getIdToken();
+        const token = await currentUser.getIdToken();
         const res = await fetch('/api/projects', {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
-        if (res.ok) {
-          const data = await res.json();
-          // Assuming API returns projects sorted by creation date, or we sort them here
-          if (data.projects && data.projects.length > 0) {
-            // Sor by created_at desc just in case
-            const sorted = data.projects.sort((a: Project, b: Project) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-            setLatestProject(sorted[0]);
-          }
+
+        if (!res.ok) {
+          return;
+        }
+
+        const data = await res.json();
+        if (data.projects && data.projects.length > 0) {
+          const sorted = data.projects.sort(
+            (a: Project, b: Project) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+          );
+          setLatestProject(sorted[0]);
         }
       } catch (error) {
-        console.error("Failed to fetch projects", error);
+        console.error('Failed to fetch projects', error);
       }
     }
 
-    fetchLatestProject();
+    void fetchLatestProject();
   }, [user]);
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[#F5F7FA] text-gray-900">
       <Navbar />
 
-      <main>
-        {/* Hero Section */}
-        <section className="relative pt-20 pb-32 overflow-hidden">
-          <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-[600px] h-[600px] bg-blue-50 rounded-full blur-3xl opacity-50" />
-          <div className="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/2 w-[400px] h-[400px] bg-indigo-50 rounded-full blur-3xl opacity-50" />
-
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-            <div className="text-center max-w-3xl mx-auto">
-              <div className="inline-flex items-center px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-sm font-medium mb-6">
-                <Zap className="w-4 h-4 mr-2" />
-                <span>Instant Frontend Previews</span>
+      <main className="relative isolate overflow-hidden">
+        <section className="relative px-4 pb-24 pt-16 sm:px-6 lg:px-8 lg:pt-20">
+          <div className="mx-auto max-w-7xl">
+            <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
+              <div className="reveal">
+                <div className="brand-badge inline-flex items-center gap-2 rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-widest text-gray-600 bg-white border border-gray-200">
+                  <Sparkles className="h-3.5 w-3.5 text-gray-500" />
+                  Preview hosting rebuilt
+                </div>
+                <h1 className="mt-8 max-w-3xl text-5xl font-bold tracking-tight text-gray-900 sm:text-6xl lg:text-7xl">
+                  Ship a frontend preview that looks ready before the client even clicks it.
+                </h1>
+                <p className="mt-6 max-w-2xl text-lg leading-8 text-gray-600">
+                  Upload your static site, get a secure public URL instantly, and manage active links from a cleaner, sharper dashboard built for demos and feedback loops.
+                </p>
+                <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                  <button
+                    onClick={handleStartUploading}
+                    className="brand-button inline-flex items-center justify-center px-7 py-3.5 text-base shadow-md"
+                  >
+                    {loading ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <>
+                        Start uploading
+                        <ArrowRight className="ml-2 h-5 w-5" />
+                      </>
+                    )}
+                  </button>
+                  <Link
+                    href={user ? '/dashboard' : '#features'}
+                    className="brand-button-soft inline-flex items-center justify-center px-7 py-3.5 text-base shadow-sm"
+                  >
+                    {user ? 'Open dashboard' : 'See what changes'}
+                  </Link>
+                </div>
+                <div className="mt-12 grid gap-4 sm:grid-cols-3">
+                  <div className="glass-panel p-5">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">Instant share</p>
+                    <p className="mt-2 text-sm leading-6 text-gray-600 font-medium">Turn a local zip into a public link in one step.</p>
+                  </div>
+                  <div className="glass-panel p-5">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">Crisp Interface</p>
+                    <p className="mt-2 text-sm leading-6 text-gray-600 font-medium">The product now leans into a modern clean palette.</p>
+                  </div>
+                  <div className="glass-panel p-5">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">24-hour lifecycle</p>
+                    <p className="mt-2 text-sm leading-6 text-gray-600 font-medium">Temporary by design, keeping environments clean.</p>
+                  </div>
+                </div>
               </div>
-              <h1 className="text-5xl md:text-6xl font-extrabold text-gray-900 tracking-tight mb-8">
-                Localhost, meet the <span className="text-blue-600">Public Web.</span>
-              </h1>
-              <p className="text-xl text-gray-600 mb-10 leading-relaxed">
-                Upload your HTML, CSS, and JS. Get a secure, shareable link instantly.
-                Perfect for feedback, testing, and demos. No CLI needed.
-              </p>
-              <div className="flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-4">
-                <button
-                  onClick={handleStartUploading}
-                  className="w-full sm:w-auto inline-flex items-center justify-center px-8 py-4 border border-transparent text-lg font-medium rounded-2xl text-white bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all transform hover:scale-105"
-                >
-                  {loading ? (
-                    <Loader2 className="w-6 h-6 animate-spin" />
-                  ) : (
-                    <>
-                      Start Uploading
-                      <ArrowRight className="ml-2 w-5 h-5" />
-                    </>
-                  )}
-                </button>
-                <button
-                  className="w-full sm:w-auto inline-flex items-center justify-center px-8 py-4 border border-gray-200 text-lg font-medium rounded-2xl text-gray-700 bg-white hover:bg-gray-50 transition-all"
-                >
-                  View Examples
-                </button>
-              </div>
-            </div>
 
-            {/* Mockup / Preview Area */}
-            <div className="mt-10 relative max-w-[95%] mx-auto px-2 sm:px-4">
-              <div className="relative">
-                {/* Decorative background blur behind the window */}
-                <div className="absolute inset-0 bg-blue-100 blur-3xl opacity-20 transform scale-110" />
-
-                <BrowserWindow
-                  className="relative z-10 h-[80vh] transition-all duration-500 shadow-2xl"
-                  url={latestProject ? `/p/${latestProject.preview_url}` : "/demo-project"}
-                  fullscreenUrl={latestProject ? `/api/preview/${latestProject.preview_url}/${latestProject.entry_point || 'index.html'}` : undefined}
-                >
-                  {latestProject ? (
-                    <iframe
-                      src={`/api/preview/${latestProject.preview_url}/${latestProject.entry_point || 'index.html'}`}
-                      className="w-full h-full border-0 bg-white"
-                      sandbox="allow-scripts allow-forms allow-same-origin allow-popups allow-modals"
-                      title="Latest Project Preview"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center bg-gray-50/50 p-8">
-                      <div className="text-center">
-                        <div className="w-20 h-20 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm">
-                          <Zap className="w-10 h-10 text-blue-600" />
+              <div className="reveal hidden lg:block" style={{ '--delay': '120ms' } as React.CSSProperties}>
+                <div className="relative">
+                  <BrowserWindow
+                    className="relative z-10 h-[70vh] min-h-[30rem] shadow-2xl rounded-xl overflow-hidden border border-gray-200 bg-white"
+                    url={latestProject ? `/p/${latestProject.preview_url}` : '/demo-project'}
+                    fullscreenUrl={latestProject ? `/api/preview/${latestProject.preview_url}/${latestProject.entry_point || 'index.html'}` : undefined}
+                  >
+                    {latestProject ? (
+                      <iframe
+                        src={`/api/preview/${latestProject.preview_url}/${latestProject.entry_point || 'index.html'}`}
+                        className="h-full w-full border-0 bg-white"
+                        sandbox="allow-scripts allow-forms allow-same-origin allow-popups allow-modals"
+                        title="Latest Project Preview"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full flex-col items-center justify-center bg-gray-50/50 p-8 text-center border-t border-gray-100">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white shadow-sm border border-gray-200 mb-6">
+                          <Upload className="h-8 w-8 text-gray-400" />
                         </div>
-                        <h3 className="text-xl font-bold text-gray-900 mb-2">Ready to Deploy?</h3>
-                        <p className="text-gray-500 font-medium">Drag & drop your project zip file to see it live here.</p>
+                        <h3 className="text-xl font-semibold tracking-tight text-gray-900">Your latest preview appears here</h3>
+                        <p className="mt-2 max-w-sm text-sm leading-6 text-gray-500">
+                          Upload a zip file and this browser window becomes the first thing you can hand to a teammate or client.
+                        </p>
                       </div>
-                    </div>
-                  )}
-                </BrowserWindow>
+                    )}
+                  </BrowserWindow>
+                </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* Features Section */}
-        <section className="py-24 bg-gray-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-              <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
-                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-6">
-                  <Shield className="w-6 h-6 text-blue-600" />
+        <section id="features" className="relative px-4 pb-24 pt-10 sm:px-6 lg:px-8 border-t border-gray-200 bg-white">
+          <div className="mx-auto max-w-7xl">
+            <div className="mb-12 reveal text-center" style={{ '--delay': '160ms' } as React.CSSProperties}>
+              <p className="text-xs uppercase tracking-widest font-semibold text-gray-400">Why it works</p>
+              <h2 className="mt-3 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+                Purpose-built for review links, not generic hosting.
+              </h2>
+            </div>
+            <div className="grid gap-6 md:grid-cols-3">
+              <div className="glass-panel reveal p-8 hover:shadow-md transition-shadow" style={{ '--delay': '220ms' } as React.CSSProperties}>
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gray-900 text-white mb-6 shadow-sm">
+                  <Shield className="h-5 w-5" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-4">Secure & Isolated</h3>
-                <p className="text-gray-600">
-                  Previews are served in a secure sandbox, ensuring they can&apos;t access your data or compromise other users.
+                <h3 className="text-xl font-semibold tracking-tight text-gray-900">Secure by default</h3>
+                <p className="mt-3 text-sm leading-6 text-gray-600">
+                  Previews are isolated and intended for safe external review without exposing the rest of your environment.
                 </p>
               </div>
-              <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
-                <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mb-6">
-                  <Clock className="w-6 h-6 text-green-600" />
+              <div className="glass-panel reveal p-8 hover:shadow-md transition-shadow" style={{ '--delay': '300ms' } as React.CSSProperties}>
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gray-900 text-white mb-6 shadow-sm">
+                  <Clock className="h-5 w-5" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-4">Temporary by Default</h3>
-                <p className="text-gray-600">
-                  Links automatically expire after 24 hours. We handle the cleanup, keeping your workspace fast and efficient.
+                <h3 className="text-xl font-semibold tracking-tight text-gray-900">Short-lived and clean</h3>
+                <p className="mt-3 text-sm leading-6 text-gray-600">
+                  Links self-expire after 24 hours, which keeps the environment lean and makes the dashboard easier to trust.
                 </p>
               </div>
-              <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
-                <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mb-6">
-                  <Zap className="w-6 h-6 text-purple-600" />
+              <div className="glass-panel reveal p-8 hover:shadow-md transition-shadow" style={{ '--delay': '380ms' } as React.CSSProperties}>
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gray-900 text-white mb-6 shadow-sm">
+                  <Zap className="h-5 w-5" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-4">Zero Config</h3>
-                <p className="text-gray-600">
-                  Just drag and drop your folder or zip file. We detect your entry point and serve it immediately.
+                <h3 className="text-xl font-semibold tracking-tight text-gray-900">Zero-config delivery</h3>
+                <p className="mt-3 text-sm leading-6 text-gray-600">
+                  Package your static files, upload once, and share the result immediately without a CLI workflow.
                 </p>
               </div>
             </div>
@@ -192,13 +209,8 @@ export default function LandingPage() {
         </section>
       </main>
 
-      {/* Footer */}
-      <footer className="bg-white border-t border-gray-100 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p className="text-gray-500 text-sm">
-            &copy; {new Date().getFullYear()} PreviewHost. Built for developers who move fast.
-          </p>
-        </div>
+      <footer className="border-t border-gray-200 bg-white px-4 py-8 text-center text-sm text-gray-500 font-medium sm:px-6 lg:px-8">
+        &copy; {new Date().getFullYear()} PreviewHost. Temporary links for fast-moving teams.
       </footer>
     </div>
   );

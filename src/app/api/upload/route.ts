@@ -133,7 +133,13 @@ export async function POST(req: NextRequest) {
                         console.log("Upload API: Rollback successful.");
                     }
                 }
-                throw new Error("Partial upload failure - triggered rollback");
+                const errorDetails = failedUploads.map(f => {
+                    if (f.status === 'fulfilled') return f.value.error;
+                    return f.reason instanceof Error ? f.reason.message : String(f.reason);
+                }).join(', ');
+
+                console.error(`Upload API: Errors: ${errorDetails}`);
+                throw new Error(`Partial upload failure: ${errorDetails} - triggered rollback`);
             }
         }
 

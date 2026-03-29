@@ -18,7 +18,7 @@ export async function GET(
 
         await dbConnect();
 
-        const project = await Project.findOne({ preview_url: id });
+        const project = await Project.findOne({ preview_url: id, deleted_at: null });
 
         if (!project) {
             return new NextResponse('Project not found', { status: 404 });

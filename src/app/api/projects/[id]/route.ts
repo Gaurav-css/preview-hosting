@@ -4,11 +4,26 @@ import { adminAuth } from '@/lib/firebase-admin';
 import dbConnect from '@/lib/db';
 import Project from '@/models/Project';
 import User from '@/models/User';
-import { deleteFolderRecursively } from '@/lib/supabase';
-import fs from 'fs';
-import path from 'path';
 
-const LOCAL_STORAGE_ROOT = path.join(process.cwd(), 'storage');
+async function getAuthorizedUser(req: NextRequest) {
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+        return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) };
+    }
+
+    const token = authHeader.split('Bearer ')[1];
+    const decodedToken = await adminAuth.verifyIdToken(token);
+    const { uid } = decodedToken;
+
+    await dbConnect();
+
+    const user = await User.findOne({ firebase_uid: uid });
+    if (!user) {
+        return { error: NextResponse.json({ error: 'User not found' }, { status: 404 }) };
+    }
+
+    return { user };
+}
 
 export async function DELETE(
     req: NextRequest,
@@ -16,50 +31,65 @@ export async function DELETE(
 ) {
     try {
         const { id } = await params;
-
-        const authHeader = req.headers.get('Authorization');
-        if (!authHeader?.startsWith('Bearer ')) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        }
-        const token = authHeader.split('Bearer ')[1];
-        const decodedToken = await adminAuth.verifyIdToken(token);
-        const { uid } = decodedToken;
-
-        await dbConnect();
-
-        const user = await User.findOne({ firebase_uid: uid });
-        if (!user) {
-            return NextResponse.json({ error: 'User not found' }, { status: 404 });
+        const auth = await getAuthorizedUser(req);
+        if (auth.error) {
+            return auth.error;
         }
 
-        // Find the project and ensure it belongs to the user
-        const project = await Project.findOne({ _id: id, user_id: user._id });
+        const project = await Project.findOne({ _id: id, user_id: auth.user._id, deleted_at: null });
 
         if (!project) {
             return NextResponse.json({ error: 'Project not found or access denied' }, { status: 404 });
         }
 
-        // Delete files from Supabase
-        await deleteFolderRecursively(project.storage_path);
+        project.deleted_at = new Date();
+        await project.save();
 
-        // Delete from Local Storage (if enabled/fallback used)
-        try {
-            const localProjectPath = path.join(LOCAL_STORAGE_ROOT, project.storage_path);
-            if (fs.existsSync(localProjectPath)) {
-                fs.rmSync(localProjectPath, { recursive: true, force: true });
-                console.log(`Deleted local files for project: ${id}`);
-            }
-        } catch (error) {
-            console.error(`Failed to delete local storage for project ${id}:`, error);
-        }
-
-        // Delete Database Record
-        await Project.deleteOne({ _id: id });
-
-        return NextResponse.json({ success: true, message: 'Project deleted' });
+        return NextResponse.json({ success: true, message: 'Project moved to delete history', project });
 
     } catch (error: unknown) {
         console.error("Delete project error:", error);
+        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    }
+}
+
+export async function PATCH(
+    req: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    try {
+        const { id } = await params;
+        const auth = await getAuthorizedUser(req);
+        if (auth.error) {
+            return auth.error;
+        }
+
+        const { action } = await req.json();
+        if (action !== 'restore') {
+            return NextResponse.json({ error: 'Unsupported action' }, { status: 400 });
+        }
+
+        const project = await Project.findOne({ _id: id, user_id: auth.user._id });
+
+        if (!project) {
+            return NextResponse.json({ error: 'Project not found or access denied' }, { status: 404 });
+        }
+
+        if (!project.deleted_at) {
+            return NextResponse.json({ error: 'Project is not in delete history' }, { status: 409 });
+        }
+
+        if (project.status === 'expired' || new Date() > new Date(project.expires_at)) {
+            return NextResponse.json({ error: 'Expired previews cannot be restored' }, { status: 409 });
+        }
+
+        project.deleted_at = null;
+        project.status = 'active';
+        await project.save();
+
+        return NextResponse.json({ success: true, message: 'Project restored', project });
+    } catch (error: unknown) {
+        console.error('Restore project error:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }

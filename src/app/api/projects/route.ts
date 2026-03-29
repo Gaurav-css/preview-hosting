@@ -7,6 +7,7 @@ import User from '@/models/User';
 
 export async function GET(req: NextRequest) {
     try {
+        const includeDeleted = req.nextUrl.searchParams.get('includeDeleted') === 'true';
         const authHeader = req.headers.get('Authorization');
         if (!authHeader?.startsWith('Bearer ')) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -23,9 +24,18 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: 'User not found' }, { status: 404 });
         }
 
-        const projects = await Project.find({ user_id: user._id }).sort({ created_at: -1 });
+        const projects = await Project.find({ user_id: user._id, deleted_at: null }).sort({ created_at: -1 });
 
-        return NextResponse.json({ projects });
+        if (!includeDeleted) {
+            return NextResponse.json({ projects });
+        }
+
+        const deletedProjects = await Project.find({
+            user_id: user._id,
+            deleted_at: { $ne: null },
+        }).sort({ deleted_at: -1 });
+
+        return NextResponse.json({ projects, deletedProjects });
     } catch (error: any) {
         console.error("Error fetching projects:", error);
         

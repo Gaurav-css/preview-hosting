@@ -1,31 +1,26 @@
-
 import { ImageResponse } from 'next/og';
 
-// Route segment config
 export const runtime = 'edge';
 
-// Image metadata
 export const size = {
     width: 32,
     height: 32,
 };
 export const contentType = 'image/png';
 
-// Image generation
 export default function Icon() {
     return new ImageResponse(
         (
-            // ImageResponse JSX element
             <div
                 style={{
                     fontSize: 24,
-                    background: '#2563eb', // blue-600
+                    background: 'linear-gradient(135deg, #f7c75c 0%, #ff7a45 100%)',
                     width: '100%',
                     height: '100%',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: 'white',
+                    color: '#24150f',
                     borderRadius: '8px',
                     fontWeight: 700,
                 }}
@@ -33,9 +28,8 @@ export default function Icon() {
                 P
             </div>
         ),
-        // ImageResponse options
         {
             ...size,
-        }
+        },
     );
 }

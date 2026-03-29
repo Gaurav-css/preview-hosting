@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useCallback, useState } from 'react';
-import { useAuth } from '@/lib/auth-context';
 import { useRouter } from 'next/navigation';
-import { Navbar } from '@/components/Navbar';
-import { Upload, File, X, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
+import { AlertCircle, CheckCircle, File, Loader2, Upload, X } from 'lucide-react';
+
+import { Navbar } from '@/components/Navbar';
+import { useAuth } from '@/lib/auth-context';
 
 export default function UploadPage() {
     const { user } = useAuth();
@@ -15,28 +16,37 @@ export default function UploadPage() {
     const [error, setError] = useState<string | null>(null);
 
     const onDrop = useCallback((acceptedFiles: File[]) => {
-        // Only accept one file (zip)
-        if (acceptedFiles.length > 0) {
-            const selectedFile = acceptedFiles[0];
-            if (selectedFile.type === 'application/zip' || selectedFile.type === 'application/x-zip-compressed' || selectedFile.name.endsWith('.zip')) {
-                setFile(selectedFile);
-                setError(null);
-            } else {
-                setError("Please upload a .zip file only.");
-            }
+        if (acceptedFiles.length === 0) {
+            return;
         }
+
+        const selectedFile = acceptedFiles[0];
+        const isZipFile =
+            selectedFile.type === 'application/zip' ||
+            selectedFile.type === 'application/x-zip-compressed' ||
+            selectedFile.name.endsWith('.zip');
+
+        if (!isZipFile) {
+            setError('Please upload a .zip file only.');
+            return;
+        }
+
+        setFile(selectedFile);
+        setError(null);
     }, []);
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop,
         maxFiles: 1,
         accept: {
-            'application/zip': ['.zip']
-        }
+            'application/zip': ['.zip'],
+        },
     });
 
     const handleUpload = async () => {
-        if (!file || !user) return;
+        if (!file || !user) {
+            return;
+        }
 
         setUploading(true);
         setError(null);
@@ -49,7 +59,7 @@ export default function UploadPage() {
             const res = await fetch('/api/upload', {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${token}`
+                    Authorization: `Bearer ${token}`,
                 },
                 body: formData,
             });
@@ -59,102 +69,143 @@ export default function UploadPage() {
                 throw new Error(data.error || 'Upload failed');
             }
 
+            // Let's redirect to dashboard
             router.push('/dashboard');
-        } catch (err: any) {
-            console.error(err);
-            setError(err.message || "An error occurred during upload.");
+        } catch (uploadError) {
+            console.error(uploadError);
+            setError(uploadError instanceof Error ? uploadError.message : 'An error occurred during upload.');
         } finally {
             setUploading(false);
         }
     };
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-[#F5F7FA] text-gray-900">
             <Navbar />
 
-            <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-                <div className="mb-8 text-center">
-                    <h1 className="text-3xl font-bold text-gray-900">Upload Project</h1>
-                    <p className="text-gray-500 mt-2">Upload a .zip file containing your static website (index.html is required).</p>
-                </div>
-
-                <div className="bg-white rounded-3xl shadow-sm border border-gray-200 p-8">
-                    {!file ? (
-                        <div
-                            {...getRootProps()}
-                            className={`border-2 border-dashed rounded-2xl p-12 flex flex-col items-center justify-center cursor-pointer transition-colors ${isDragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50'
-                                }`}
-                        >
-                            <input {...getInputProps()} />
-                            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-                                <Upload className="w-8 h-8 text-blue-600" />
+            <div className="relative isolate overflow-hidden">
+                <main className="relative mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
+                    <div className="grid gap-8 lg:grid-cols-[1.25fr_0.75fr]">
+                        <section className="glass-panel reveal p-8 sm:p-10 shadow-sm">
+                            <div className="brand-badge inline-flex items-center gap-2 rounded-full px-4 py-2 text-[11px] font-semibold uppercase tracking-widest bg-gray-100 text-gray-600 border border-gray-200">
+                                <Upload className="h-3.5 w-3.5" />
+                                New deployment
                             </div>
-                            <p className="text-lg font-medium text-gray-900 mb-1">
-                                {isDragActive ? "Drop the zip file here" : "Drag & drop your zip file"}
+                            <h1 className="mt-6 text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl">
+                                Upload a zipped static site and publish it fast.
+                            </h1>
+                            <p className="mt-4 max-w-2xl text-base leading-8 text-gray-500">
+                                Drop in your build output, keep the entry point clean, and this workspace handles the shareable preview URL.
                             </p>
-                            <p className="text-gray-500 text-sm">or click to select file</p>
-                            <div className="mt-6 flex items-center text-xs text-gray-400">
-                                <span className="bg-gray-100 px-2 py-1 rounded">.ZIP only</span>
-                                <span className="mx-2">•</span>
-                                <span>Max 50MB</span>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="border border-gray-200 rounded-2xl p-6">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-4">
-                                    <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                                        <File className="w-6 h-6 text-blue-600" />
+
+                            {!file ? (
+                                <div
+                                    {...getRootProps()}
+                                    className={`mt-10 rounded-2xl border-2 border-dashed px-6 py-14 text-center transition-all cursor-pointer sm:px-10 ${
+                                        isDragActive
+                                            ? 'border-blue-400 bg-blue-50'
+                                            : 'border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100'
+                                    }`}
+                                >
+                                    <input {...getInputProps()} />
+                                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-gray-200 bg-white shadow-sm">
+                                        <Upload className={`h-8 w-8 ${isDragActive ? 'text-blue-500' : 'text-gray-400'}`} />
                                     </div>
-                                    <div>
-                                        <p className="font-medium text-gray-900">{file.name}</p>
-                                        <p className="text-sm text-gray-500">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                                    <p className="mt-6 text-xl font-semibold tracking-tight text-gray-900">
+                                        {isDragActive ? 'Drop the zip file here' : 'Drag and drop your zip file'}
+                                    </p>
+                                    <p className="mt-2 text-sm text-gray-500">or click to browse from disk</p>
+                                    <div className="mt-6 inline-flex items-center rounded-full bg-white border border-gray-200 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-widest text-gray-500 shadow-sm">
+                                        .zip only • max 50MB
                                     </div>
                                 </div>
-                                <button
-                                    onClick={() => setFile(null)}
-                                    className="p-2 text-gray-400 hover:text-red-500 transition-colors"
-                                    disabled={uploading}
-                                >
-                                    <X className="w-5 h-5" />
-                                </button>
-                            </div>
+                            ) : (
+                                <div className="mt-10 rounded-2xl border border-gray-200 bg-gray-50 p-6 sm:p-8">
+                                    <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between mb-8">
+                                        <div className="flex items-center gap-4">
+                                            <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-white border border-gray-200 shadow-sm">
+                                                <File className="h-6 w-6 text-gray-700" />
+                                            </div>
+                                            <div>
+                                                <p className="text-lg font-semibold tracking-tight text-gray-900">{file.name}</p>
+                                                <p className="text-sm font-medium text-gray-500">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); setFile(null); }}
+                                            className="brand-button-soft inline-flex h-10 items-center justify-center px-4 text-sm bg-white"
+                                            disabled={uploading}
+                                        >
+                                            <X className="mr-2 h-4 w-4 text-gray-400" />
+                                            Remove
+                                        </button>
+                                    </div>
 
-                            {error && (
-                                <div className="mt-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm flex items-center">
-                                    <AlertCircle className="w-4 h-4 mr-2" />
-                                    {error}
+                                    {error && (
+                                        <div className="mb-6 flex items-center rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                                            <AlertCircle className="mr-2 h-4 w-4 text-red-500" />
+                                            {error}
+                                        </div>
+                                    )}
+
+                                    <div className="flex justify-end pt-4 border-t border-gray-200">
+                                        <button
+                                            onClick={handleUpload}
+                                            disabled={uploading}
+                                            className={`brand-button inline-flex items-center px-6 py-3 text-sm sm:text-base ${
+                                                uploading ? 'cursor-not-allowed opacity-70' : ''
+                                            }`}
+                                        >
+                                            {uploading ? (
+                                                <>
+                                                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                                    Uploading...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    Deploy preview
+                                                    <Upload className="ml-2 h-5 w-5 opacity-80" />
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
                                 </div>
                             )}
+                        </section>
 
-                            <div className="mt-6 flex justify-end">
-                                <button
-                                    onClick={handleUpload}
-                                    disabled={uploading}
-                                    className={`inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-blue-600 hover:bg-blue-700 transition-all ${uploading ? 'opacity-70 cursor-not-allowed' : ''
-                                        }`}
-                                >
-                                    {uploading ? (
-                                        <>
-                                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                                            Uploading...
-                                        </>
-                                    ) : (
-                                        <>
-                                            Deploy Project
-                                            <Upload className="w-5 h-5 ml-2" />
-                                        </>
-                                    )}
-                                </button>
+                        <aside className="glass-panel reveal p-8 sm:p-10 shadow-sm" style={{ '--delay': '120ms' } as React.CSSProperties}>
+                            <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">Release notes</p>
+                            <h2 className="mt-3 text-xl font-bold tracking-tight text-gray-900">What makes a clean upload</h2>
+                            <div className="mt-8 space-y-3">
+                                <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
+                                    <div className="flex items-center gap-3">
+                                        <CheckCircle className="h-5 w-5 text-green-500" />
+                                        <p className="text-sm font-medium text-gray-700">Include `index.html` at the project root</p>
+                                    </div>
+                                </div>
+                                <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
+                                    <div className="flex items-center gap-3">
+                                        <CheckCircle className="h-5 w-5 text-green-500" />
+                                        <p className="text-sm font-medium text-gray-700">Bundle all linked assets into the zip</p>
+                                    </div>
+                                </div>
+                                <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
+                                    <div className="flex items-center gap-3">
+                                        <CheckCircle className="h-5 w-5 text-green-500" />
+                                        <p className="text-sm font-medium text-gray-700">Expect the link to rotate out after 24 hours</p>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    )}
-                </div>
-
-                <div className="mt-8 text-center text-sm text-gray-400">
-                    <p>Your project will be live for 24 hours.</p>
-                </div>
-            </main>
+                            <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-6">
+                                <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-500">Temporary hosting</p>
+                                <p className="mt-2 text-sm leading-6 text-gray-600">
+                                    This tool is optimized for demos, client feedback, and fast internal reviews. It is not a permanent hosting layer.
+                                </p>
+                            </div>
+                        </aside>
+                    </div>
+                </main>
+            </div>
         </div>
     );
 }
