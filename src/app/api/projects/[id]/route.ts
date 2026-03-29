@@ -12,8 +12,14 @@ async function getAuthorizedUser(req: NextRequest) {
     }
 
     const token = authHeader.split('Bearer ')[1];
-    const decodedToken = await adminAuth.verifyIdToken(token);
-    const { uid } = decodedToken;
+    let uid;
+    try {
+        const decodedToken = await adminAuth.verifyIdToken(token);
+        uid = decodedToken.uid;
+    } catch (error) {
+        console.error("Token verification failed:", error);
+        return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) };
+    }
 
     await dbConnect();
 
@@ -36,14 +42,15 @@ export async function DELETE(
             return auth.error;
         }
 
-        const project = await Project.findOne({ _id: id, user_id: auth.user._id, deleted_at: null });
+        const project = await Project.findOneAndUpdate(
+            { _id: id, user_id: auth.user._id, deleted_at: null },
+            { $set: { deleted_at: new Date() } },
+            { new: true }
+        );
 
         if (!project) {
             return NextResponse.json({ error: 'Project not found or access denied' }, { status: 404 });
         }
-
-        project.deleted_at = new Date();
-        await project.save();
 
         return NextResponse.json({ success: true, message: 'Project moved to delete history', project });
 
@@ -64,7 +71,14 @@ export async function PATCH(
             return auth.error;
         }
 
-        const { action } = await req.json();
+        let action;
+        try {
+            const body = await req.json();
+            action = body.action;
+        } catch {
+            return NextResponse.json({ error: 'Invalid or missing JSON body' }, { status: 400 });
+        }
+
         if (action !== 'restore') {
             return NextResponse.json({ error: 'Unsupported action' }, { status: 400 });
         }
@@ -83,11 +97,13 @@ export async function PATCH(
             return NextResponse.json({ error: 'Expired previews cannot be restored' }, { status: 409 });
         }
 
-        project.deleted_at = null;
-        project.status = 'active';
-        await project.save();
+        const updatedProject = await Project.findOneAndUpdate(
+            { _id: id, user_id: auth.user._id },
+            { $set: { deleted_at: null, status: 'active' } },
+            { new: true }
+        );
 
-        return NextResponse.json({ success: true, message: 'Project restored', project });
+        return NextResponse.json({ success: true, message: 'Project restored', project: updatedProject });
     } catch (error: unknown) {
         console.error('Restore project error:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

@@ -372,6 +372,12 @@
                 font-size: 2em !important;
             }
         }
+
+        @keyframes pulse {
+            0% { transform: translate(-50%, -50%) scale(1); box-shadow: 0 5px 20px rgba(155, 77, 202, 0.4); }
+            50% { transform: translate(-50%, -50%) scale(1.05); box-shadow: 0 8px 30px rgba(155, 77, 202, 0.6); }
+            100% { transform: translate(-50%, -50%) scale(1); box-shadow: 0 5px 20px rgba(155, 77, 202, 0.4); }
+        }
     </style>
 </head>
 <body>
@@ -626,7 +632,7 @@
             angryClickCount++;
             
             // Move button to body for proper fixed positioning
-            if (btn.parentElement.id !== 'body') {
+            if (btn.parentElement && btn.parentElement !== document.body) {
                 document.body.appendChild(btn);
             }
             

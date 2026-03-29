@@ -69,10 +69,13 @@ export default function Dashboard() {
 
             try {
                 const token = await user.getIdToken();
-                const res = await fetch('/api/projects?includeDeleted=true', {
+                const res = await fetch(`/api/projects?includeDeleted=true&t=${Date.now()}`, {
                     headers: {
                         Authorization: `Bearer ${token}`,
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache',
                     },
+                    cache: 'no-store',
                 });
 
                 const data = await res.json();
@@ -147,10 +150,21 @@ export default function Dashboard() {
                     Authorization: `Bearer ${token}`,
                 },
             });
-            const data = await res.json();
+
+            let data;
+            const contentType = res.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                try {
+                    data = await res.json();
+                } catch {
+                    data = { error: 'Failed to parse JSON response' };
+                }
+            } else {
+                data = { error: await res.text() || 'Failed to delete project' };
+            }
 
             if (!res.ok) {
-                window.alert(data.error || 'Failed to delete project');
+                window.alert(data?.error || 'Failed to delete project');
                 setDeletingId(null);
                 actionInProgress.current.delete(id);
                 return;

@@ -1,9 +1,10 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 import { adminAuth } from '@/lib/firebase-admin';
 import dbConnect from '@/lib/db';
 import Project from '@/models/Project';
 import User from '@/models/User';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
     try {
@@ -36,11 +37,12 @@ export async function GET(req: NextRequest) {
         }).sort({ deleted_at: -1 });
 
         return NextResponse.json({ projects, deletedProjects });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Error fetching projects:", error);
         
         // Check for specific connectivity errors
-        if (error.name === 'MongooseServerSelectionError' || error.message?.includes('ECONNREFUSED')) {
+        const err = error as Error;
+        if (err.name === 'MongooseServerSelectionError' || err.message?.includes('ECONNREFUSED')) {
             return NextResponse.json({ 
                 error: 'Database Connection Failed', 
                 details: 'Could not connect to MongoDB. Please check your network connection and firewall settings.' 

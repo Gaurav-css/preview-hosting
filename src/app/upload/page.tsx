@@ -98,6 +98,13 @@ export default function UploadPage() {
                                 Drop in your build output, keep the entry point clean, and this workspace handles the shareable preview URL.
                             </p>
 
+                            {error && (
+                                <div className="mt-6 flex items-center rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                                    <AlertCircle className="mr-2 h-4 w-4 text-red-500" />
+                                    {error}
+                                </div>
+                            )}
+
                             {!file ? (
                                 <div
                                     {...getRootProps()}
@@ -140,13 +147,6 @@ export default function UploadPage() {
                                             Remove
                                         </button>
                                     </div>
-
-                                    {error && (
-                                        <div className="mb-6 flex items-center rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-                                            <AlertCircle className="mr-2 h-4 w-4 text-red-500" />
-                                            {error}
-                                        </div>
-                                    )}
 
                                     <div className="flex justify-end pt-4 border-t border-gray-200">
                                         <button

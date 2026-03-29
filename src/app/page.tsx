@@ -147,7 +147,7 @@ export default function LandingPage() {
                       <iframe
                         src={`/api/preview/${latestProject.preview_url}/${latestProject.entry_point || 'index.html'}`}
                         className="h-full w-full border-0 bg-white"
-                        sandbox="allow-scripts allow-forms allow-same-origin allow-popups allow-modals"
+                        sandbox="allow-scripts allow-forms allow-popups allow-modals"
                         title="Latest Project Preview"
                       />
                     ) : (
