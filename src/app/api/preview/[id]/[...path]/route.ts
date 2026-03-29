@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Project from '@/models/Project';
@@ -73,6 +72,23 @@ export async function GET(
                 if (checkIndex.exists) {
                      finalKey = filePath + '/index.html';
                      check = checkIndex;
+                }
+            }
+        }
+
+        if (!check.exists) {
+            // Single Page Application (SPA) Fallback
+            // If it's a front-end route (no file extension, or asking for HTML), fallback to entry point
+            const acceptHeader = req.headers.get('accept') || '';
+            const isDocument = acceptHeader.includes('text/html') || !pathArray[pathArray.length - 1].includes('.');
+
+            if (isDocument && project.entry_point) {
+                console.log("SPA Fallback: Serving entry point for", filePath);
+                let entryCheckKey = `${project.storage_path}/${project.entry_point}`;
+                
+                check = await smartCheck(entryCheckKey);
+                if (check.exists) {
+                    finalKey = entryCheckKey;
                 }
             }
         }

@@ -180,13 +180,13 @@ export default function UploadPage() {
                                 <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
                                     <div className="flex items-center gap-3">
                                         <CheckCircle className="h-5 w-5 text-green-500" />
-                                        <p className="text-sm font-medium text-gray-700">Include `index.html` at the project root</p>
+                                        <p className="text-sm font-medium text-gray-700">For React/Vue, zip the final <b>dist</b> or <b>build</b> folder.</p>
                                     </div>
                                 </div>
                                 <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
                                     <div className="flex items-center gap-3">
                                         <CheckCircle className="h-5 w-5 text-green-500" />
-                                        <p className="text-sm font-medium text-gray-700">Bundle all linked assets into the zip</p>
+                                        <p className="text-sm font-medium text-gray-700">Use relative asset paths <span className="text-gray-400 text-xs ml-1">(e.g. {"base: './'"} in Vite)</span>.</p>
                                     </div>
                                 </div>
                                 <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
