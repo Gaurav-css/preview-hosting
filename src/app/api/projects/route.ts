@@ -1,29 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { adminAuth } from '@/lib/firebase-admin';
+import { getAuthenticatedUser } from '@/lib/auth-server';
 import dbConnect from '@/lib/db';
 import Project from '@/models/Project';
-import User from '@/models/User';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
     try {
         const includeDeleted = req.nextUrl.searchParams.get('includeDeleted') === 'true';
-        const authHeader = req.headers.get('Authorization');
-        if (!authHeader?.startsWith('Bearer ')) {
+
+        const user = await getAuthenticatedUser(req);
+        if (!user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
-        const token = authHeader.split('Bearer ')[1];
-        const decodedToken = await adminAuth.verifyIdToken(token);
-        const { uid } = decodedToken;
 
         await dbConnect();
-
-        // Get the user's ObjectId
-        const user = await User.findOne({ firebase_uid: uid });
-        if (!user) {
-            return NextResponse.json({ error: 'User not found' }, { status: 404 });
-        }
 
         const projects = await Project.find({ user_id: user._id, deleted_at: null }).sort({ created_at: -1 });
 

@@ -1,34 +1,21 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { adminAuth } from '@/lib/firebase-admin';
-import dbConnect from '@/lib/db';
+import { getAuthenticatedUser } from '@/lib/auth-server';
 import Project from '@/models/Project';
-import User from '@/models/User';
 
 async function getAuthorizedUser(req: NextRequest) {
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-        return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) };
-    }
-
-    const token = authHeader.split('Bearer ')[1];
-    let uid;
     try {
-        const decodedToken = await adminAuth.verifyIdToken(token);
-        uid = decodedToken.uid;
+        const user = await getAuthenticatedUser(req);
+
+        if (!user) {
+            return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) };
+        }
+
+        return { user };
     } catch (error) {
         console.error("Token verification failed:", error);
         return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) };
     }
-
-    await dbConnect();
-
-    const user = await User.findOne({ firebase_uid: uid });
-    if (!user) {
-        return { error: NextResponse.json({ error: 'User not found' }, { status: 404 }) };
-    }
-
-    return { user };
 }
 
 export async function DELETE(

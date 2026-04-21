@@ -1,54 +1,43 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { adminAuth } from '@/lib/firebase-admin';
 import dbConnect from '@/lib/db';
+import { comparePassword, createAuthToken, getPublicUserData, setAuthCookie } from '@/lib/auth-server';
+import { normalizeEmail } from '@/lib/auth-shared';
 import User from '@/models/User';
 
 export async function POST(req: NextRequest) {
     try {
-        const { idToken } = await req.json();
+        const { email: rawEmail, password } = await req.json();
+        const email = normalizeEmail(rawEmail || '');
 
-        if (!idToken) {
-            console.error("Login API: Missing ID token");
-            return NextResponse.json({ error: 'Missing ID token' }, { status: 400 });
+        if (!email || !password) {
+            return NextResponse.json({ error: 'Email and password are required.' }, { status: 400 });
         }
 
-        console.log("Login API: Verifying token...");
-        // Verify the ID token
-        const decodedToken = await adminAuth.verifyIdToken(idToken);
-        const { uid, email, name, picture } = decodedToken;
-        console.log("Login API: Token verified for UID:", uid);
-
-        if (!email) {
-            console.error("Login API: No email in token");
-            return NextResponse.json({ error: 'Email is required' }, { status: 400 });
-        }
-
-        console.log("Login API: Connecting to DB...");
         await dbConnect();
-        console.log("Login API: DB Connected. Finding user...");
 
-        // Find or create user
-        let user = await User.findOne({ firebase_uid: uid });
+        const user = await User.findOne({ email }).select('+password_hash');
 
-        if (!user) {
-            console.log("Login API: User not found, creating new user...");
-            user = await User.create({
-                firebase_uid: uid,
-                email,
-                name: name || email.split('@')[0],
-                avatar_url: picture,
-            });
-            console.log("Login API: User created:", user._id);
-        } else {
-            console.log("Login API: User found:", user._id);
+        if (!user?.password_hash) {
+            return NextResponse.json({ error: 'Invalid email or password.' }, { status: 401 });
         }
 
-        return NextResponse.json({ user, status: 'success' });
+        const isPasswordValid = await comparePassword(String(password), user.password_hash);
+
+        if (!isPasswordValid) {
+            return NextResponse.json({ error: 'Invalid email or password.' }, { status: 401 });
+        }
+
+        const token = await createAuthToken(user._id.toString(), user.email);
+        const response = NextResponse.json({
+            status: 'success',
+            user: getPublicUserData(user),
+        });
+        setAuthCookie(response, token);
+
+        return response;
     } catch (error: unknown) {
-        console.error('Login API Error:', error); // Log for server-side debugging
-        return NextResponse.json({
-            error: 'Internal Server Error'
-        }, { status: 500 });
+        console.error('Login API Error:', error);
+        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }

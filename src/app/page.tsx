@@ -16,23 +16,18 @@ interface Project {
 }
 
 export default function LandingPage() {
-  const { user, login, loading } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
   const [latestProject, setLatestProject] = React.useState<Project | null>(null);
 
-  const handleStartUploading = async () => {
+  const handleStartUploading = () => {
     if (user) {
       router.push('/upload');
       return;
     }
 
     window.localStorage.setItem('redirect_to_upload', 'true');
-
-    try {
-      await login();
-    } catch (error) {
-      console.error('Login trigger failed', error);
-    }
+    router.push('/auth');
   };
 
   useEffect(() => {
@@ -48,17 +43,9 @@ export default function LandingPage() {
     }
 
     async function fetchLatestProject() {
-      const currentUser = user;
-      if (!currentUser) {
-        return;
-      }
-
       try {
-        const token = await currentUser.getIdToken();
         const res = await fetch('/api/projects', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          credentials: 'include',
         });
 
         if (!res.ok) {

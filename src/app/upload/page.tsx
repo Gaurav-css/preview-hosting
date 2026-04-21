@@ -9,11 +9,20 @@ import { Navbar } from '@/components/Navbar';
 import { useAuth } from '@/lib/auth-context';
 
 export default function UploadPage() {
-    const { user } = useAuth();
+    const { user, loading } = useAuth();
     const router = useRouter();
     const [file, setFile] = useState<File | null>(null);
     const [uploading, setUploading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    React.useEffect(() => {
+        if (loading || user) {
+            return;
+        }
+
+        window.localStorage.setItem('redirect_to_upload', 'true');
+        router.replace('/auth');
+    }, [loading, router, user]);
 
     const onDrop = useCallback((acceptedFiles: File[]) => {
         if (acceptedFiles.length === 0) {
@@ -55,12 +64,9 @@ export default function UploadPage() {
         formData.append('file', file);
 
         try {
-            const token = await user.getIdToken();
             const res = await fetch('/api/upload', {
                 method: 'POST',
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
+                credentials: 'include',
                 body: formData,
             });
 
@@ -78,6 +84,14 @@ export default function UploadPage() {
             setUploading(false);
         }
     };
+
+    if (loading || !user) {
+        return (
+            <div className="flex min-h-screen items-center justify-center bg-[#F5F7FA]">
+                <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-[#F5F7FA] text-gray-900">

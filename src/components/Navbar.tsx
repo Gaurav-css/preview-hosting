@@ -6,8 +6,8 @@ import { useAuth } from '@/lib/auth-context';
 import { Layout, LogOut, User as UserIcon } from 'lucide-react';
 
 export const Navbar = () => {
-    const { user, login, logout } = useAuth();
-    const accountLabel = user?.displayName || user?.email || 'Dashboard';
+    const { user, logout } = useAuth();
+    const accountLabel = user?.name || user?.email || 'Dashboard';
 
     return (
         <nav className="sticky top-0 z-50 border-b border-gray-200 bg-white/80 backdrop-blur-xl">
@@ -33,10 +33,10 @@ export const Navbar = () => {
                                 <span className="sm:hidden inline">Dash</span>
                             </Link>
                             <div className="hidden items-center gap-3 rounded-full border border-gray-200 bg-gray-50 px-2 py-1.5 sm:flex">
-                                {user.photoURL ? (
+                                {user.avatar_url ? (
                                     <img
-                                        src={user.photoURL}
-                                        alt={user.displayName || 'User avatar'}
+                                        src={user.avatar_url}
+                                        alt={user.name || 'User avatar'}
                                         className="h-8 w-8 rounded-full border border-gray-200 object-cover"
                                     />
                                 ) : (
@@ -59,12 +59,12 @@ export const Navbar = () => {
                             </button>
                         </>
                     ) : (
-                        <button
-                            onClick={() => login()}
+                        <Link
+                            href="/auth"
                             className="brand-button inline-flex items-center rounded-full px-5 py-2.5 text-sm font-semibold"
                         >
-                            Login with Google
-                        </button>
+                            Log in
+                        </Link>
                     )}
                 </div>
             </div>

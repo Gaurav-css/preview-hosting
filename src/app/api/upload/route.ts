@@ -1,6 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { adminAuth } from '@/lib/firebase-admin';
+import { getAuthenticatedUser } from '@/lib/auth-server';
 import dbConnect from '@/lib/db';
 import Project from '@/models/Project';
 import User from '@/models/User';
@@ -16,19 +16,14 @@ const LOCAL_STORAGE_ROOT = path.join(process.cwd(), 'storage');
 export async function POST(req: NextRequest) {
     console.log("Upload API: Request received");
     try {
-        const authHeader = req.headers.get('Authorization');
-        if (!authHeader?.startsWith('Bearer ')) {
+        const authUser = await getAuthenticatedUser(req);
+        if (!authUser) {
             console.log("Upload API: Unauthorized - missing token");
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
-        const token = authHeader.split('Bearer ')[1];
-        console.log("Upload API: Verifying token...");
-        const decodedToken = await adminAuth.verifyIdToken(token);
-        const { uid } = decodedToken;
-        console.log("Upload API: Token verified for UID:", uid);
 
         await dbConnect();
-        const user = await User.findOne({ firebase_uid: uid });
+        const user = await User.findById(authUser._id);
         if (!user) {
             console.log("Upload API: User not found in MongoDB");
             return NextResponse.json({ error: 'User not found' }, { status: 404 });

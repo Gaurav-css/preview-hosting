@@ -16,7 +16,6 @@ import {
     LogOut,
     Plus,
     RotateCcw,
-    Settings,
     Trash2,
     UploadCloud,
     User as UserIcon,
@@ -54,7 +53,7 @@ export default function Dashboard() {
 
     useEffect(() => {
         if (!loading && !user) {
-            router.push('/');
+            router.replace('/auth');
         }
     }, [loading, router, user]);
 
@@ -68,13 +67,12 @@ export default function Dashboard() {
             setError(null);
 
             try {
-                const token = await user.getIdToken();
                 const res = await fetch(`/api/projects?includeDeleted=true&t=${Date.now()}`, {
                     headers: {
-                        Authorization: `Bearer ${token}`,
                         'Cache-Control': 'no-cache, no-store, must-revalidate',
                         'Pragma': 'no-cache',
                     },
+                    credentials: 'include',
                     cache: 'no-store',
                 });
 
@@ -143,12 +141,9 @@ export default function Dashboard() {
         }
 
         try {
-            const token = await user.getIdToken();
             const res = await fetch(`/api/projects/${id}`, {
                 method: 'DELETE',
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
+                credentials: 'include',
             });
 
             let data;
@@ -207,13 +202,12 @@ export default function Dashboard() {
         setRestoringId(id);
 
         try {
-            const token = await user.getIdToken();
             const res = await fetch(`/api/projects/${id}`, {
                 method: 'PATCH',
                 headers: {
-                    Authorization: `Bearer ${token}`,
                     'Content-Type': 'application/json',
                 },
+                credentials: 'include',
                 body: JSON.stringify({ action: 'restore' }),
             });
             const data = await res.json();
@@ -277,7 +271,7 @@ export default function Dashboard() {
         return null;
     }
 
-    const firstName = user.displayName?.split(' ')[0] || 'Builder';
+    const firstName = user.name?.split(' ')[0] || 'Builder';
 
     if (error) {
         return (
@@ -316,8 +310,8 @@ export default function Dashboard() {
                     <button onClick={() => logout()} className="p-1.5 text-gray-500 hover:text-gray-900 transition-colors" title="Logout">
                         <LogOut className="h-4 w-4" />
                     </button>
-                    {user.photoURL && (
-                        <img src={user.photoURL} className="h-7 w-7 rounded-full border border-gray-200 object-cover" alt={firstName} />
+                    {user.avatar_url && (
+                        <img src={user.avatar_url} className="h-7 w-7 rounded-full border border-gray-200 object-cover" alt={firstName} />
                     )}
                 </div>
             </header>
@@ -348,8 +342,8 @@ export default function Dashboard() {
 
                 <div className="p-4 border-t border-[#E5E7EB] bg-gray-50/50">
                     <div className="flex items-center gap-3 px-2 py-1">
-                        {user.photoURL ? (
-                            <img src={user.photoURL} className="h-8 w-8 rounded-full border border-gray-200" alt={firstName} />
+                        {user.avatar_url ? (
+                            <img src={user.avatar_url} className="h-8 w-8 rounded-full border border-gray-200" alt={firstName} />
                         ) : (
                             <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center border border-gray-300">
                                 <UserIcon className="h-4 w-4 text-gray-500" />
